@@ -1,0 +1,128 @@
+---
+title: CDC Addiction dataset cleaning
+subtitle: DSAN 5200-03 Final Project
+author: Jen Guo
+date: last-modified
+date-format: long
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    mainfont: Atkinson Hyperlegible
+    code-annotations: hover
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto 
+---
+
+## Set up for R
+
+```{r}
+#load libraries fof r
+library(ggplot2) 
+library(readr) 
+library(dplyr)
+library(reticulate)
+library(tidyverse)
+library(tidyr)
+library(stringr)
+library(tibble)
+library(reshape2)
+```
+
+# Clean the addiction dataset
+
+```{r}
+#read loan csv file
+addiction_data <- read.csv("data/VSRR_Provisional_County-Level_Drug_Overdose_Death_Counts.csv")
+addiction_tibble <- tibble(addiction_data) #use tibble to make addiction_data a dataframe
+
+```
+
+```{r}
+#check for data types of each column in the dataframe
+#print(str(addiction_tibble))
+
+```
+
+```{r}
+#set new dataframe name for addiction dataframe when dropping columns
+addiction_drop_df <- addiction_tibble
+
+#drop unneeded columns from dataframe 
+addiction_drop_df <- subset(addiction_drop_df, select = -c(CODE2013, Footnote, HistoricalDataCompletenessNote))
+
+```
+
+```{r}
+#set new dataframe name for addiction dataframe when renaming columns
+addiction_rename_df <- addiction_drop_df
+
+#rename column names 
+addiction_rename_df <- addiction_rename_df %>% 
+    rename(Analysis_date = Data.as.of, Year_of_death = Year, Month_of_death = Month, Count_drug_overdose_deaths = Provisional.Drug.Overdose.Deaths, 	
+Percentage_of_records_pending = Percentage.Of.Records.Pending.Investigation,
+Observation_12_month_ending_periods = MonthEndingDate, First_month_ending_date_of_reporting_period = Start.Date, Last_month_ending_date_of_reporting_period = End.Date)
+
+```
+
+```{r}
+#set new dataframe name for addiction dataframe when replacing blank values
+addiction_replace_blank_df <- addiction_rename_df
+
+#replace blank values with NA objects in the Count_drug_overdose_deaths column 
+for (i in addiction_replace_blank_df){
+    addiction_replace_blank_df[addiction_replace_blank_df == ""] <- NA
+}
+
+```
+
+```{r}
+#check for missing values 
+print(sum(is.na(addiction_replace_blank_df))) #77955 missing values
+```
+
+```{r}
+#install library for date conversion
+library(lubridate)
+
+#set new dataframe name for addiction datafram with date transformation
+addiction_date_df <- addiction_replace_blank_df 
+
+#convert the date related columns from string to date types 
+addiction_date_df$Analysis_date <- mdy(addiction_date_df$Analysis_date)
+
+addiction_date_df$Observation_12_month_ending_periods <- mdy(addiction_date_df$Observation_12_month_ending_periods)
+
+addiction_date_df$First_month_ending_date_of_reporting_period <- mdy(addiction_date_df$First_month_ending_date_of_reporting_period)
+
+addiction_date_df$Last_month_ending_date_of_reporting_period <- mdy(addiction_date_df$Last_month_ending_date_of_reporting_period)
+
+#check if date transformation worked
+#print(str(addiction_date_df))
+```
+
+```{r}
+#set new variable name for addiction dataframe when transforming data types 
+addiction_type_df <- addiction_date_df
+
+#convert certain columns from integer to character type
+addiction_type_df$Year_of_death <- as.character(addiction_type_df$Year_of_death)
+addiction_type_df$Month_of_death <- as.character(addiction_type_df$Month_of_death)
+
+#convert column from character to integer type
+addiction_type_df$Count_drug_overdose_deaths <- as.numeric(addiction_type_df$Count_drug_overdose_deaths)
+
+#check character type transformation
+#print(str(addiction_type_df))
+
+```
+
+```{r}
+#export cleaned addition dataframe into new csv file
+write.csv(addiction_type_df,'data/cleaned_addiction.csv')
+```
