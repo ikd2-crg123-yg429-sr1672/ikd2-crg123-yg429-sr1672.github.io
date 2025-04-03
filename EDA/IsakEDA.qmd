@@ -1,0 +1,126 @@
+---
+title: "Isak EDA"
+format: html
+toc: true
+---
+
+```{r, echo = FALSE}
+library(tidyverse) |> suppressPackageStartupMessages()
+my_theme <- theme_classic() + theme(
+  panel.background = element_rect(fill = alpha("#f0f0f0", 0.25)),
+  axis.title.x = element_text(colour = "gray50"),
+  axis.title.y = element_text(colour = "gray50"),
+  plot.title = element_text(colour = "gray50"),
+  plot.subtitle = element_text(colour = "gray50"),
+  plot.caption = element_text(colour = "gray50"),
+  axis.text.x = element_text(colour = "gray50"),
+  axis.text.y = element_text(colour = "gray50"),
+  panel.grid.major = element_line(linetype = 2),
+  axis.ticks = element_blank(),
+  axis.line = element_line(colour = "gray50", linewidth = 0.75),
+  legend.text = element_text(colour = "gray50"),
+  legend.title = element_text(colour = "gray50"),
+  legend.background = element_rect(fill = alpha("#f0f0f0", 0.25))
+)
+
+poverty <- read.csv("../data/clean_data/county_poverty.csv")
+
+```
+
+## Distributions of Variables
+```{r}
+ggplot(poverty)+
+  geom_histogram(aes(x = total_pov), bins = 20)+
+  my_theme+
+  labs(
+    title = "Distribution of Overall Poverty Rates by County",
+    x = "Overall Poverty Rate",
+    y = "Count"
+  )+
+  coord_cartesian(expand = FALSE)
+
+ggplot(poverty)+
+  geom_histogram(aes(x = child_pov), bins = 20)+
+  my_theme+
+  labs(
+    title = "Distribution of Child Poverty Rates by County",
+    x = "Overall Child Poverty Rate",
+    y = "Count"
+  )+
+  coord_cartesian(expand = FALSE)
+
+ggplot(poverty)+
+  geom_histogram(aes(x = mhi), bins = 20)+
+  my_theme+
+  labs(
+    title = "Distribution of Median Household Income by County",
+    x = "Median Household Income",
+    y = "Count"
+  )+
+  coord_cartesian(expand = FALSE)
+```
+
+## Correlations Between Variables
+```{r}
+ggplot(poverty, aes(x = total_pov, y = mhi))+
+  geom_point()+
+  my_theme+
+  labs(
+    title = "Correlation Between Overall Poverty Rate and Median Household Income",
+    x = "Overall Poverty Rate",
+    y = "Median Household Income"
+  )+
+  coord_cartesian(expand = FALSE)+
+  stat_smooth(method = "loess", se = TRUE, color = "red")
+
+ggplot(poverty, aes(x = child_pov, y = mhi))+
+  geom_point()+
+  my_theme+
+  labs(
+    title = "Correlation Between Child Poverty Rate and Median Household Income",
+    x = "Child Poverty Rate",
+    y = "Median Household Income"
+  )+
+  coord_cartesian(expand = FALSE)+
+  stat_smooth(method = "loess", se = TRUE, color = "red")
+
+ggplot(poverty, aes(x = total_pov, y = child_pov))+
+  geom_point()+
+  my_theme+
+  labs(
+    title = "Correlation Between Overall Poverty Rate and Child Poverty Rate",
+    x = "Overall Poverty Rate",
+    y = "Child Poverty Rate"
+  )+
+  coord_cartesian(expand = FALSE)+
+  stat_smooth(method = "loess", se = TRUE, color = "red")
+```
+
+## PCA on Variables
+```{r}
+library(factoextra)
+library(FactoMineR)
+
+pca_data <- poverty |> 
+  select(total_pov, child_pov, mhi) |> 
+  scale()
+
+pca <- PCA(pca_data, graph = FALSE)
+fviz_pca_var(pca, col.var = "contrib") +
+  my_theme +
+  labs(
+    title = "PCA of Poverty Data",
+    x = "PC1",
+    y = "PC2"
+  ) +
+  coord_cartesian(expand = FALSE)
+
+fviz_pca_ind(pca, col.ind = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))+
+  labs(
+    title = "PCA of Poverty Data",
+    x = "PC1",
+    y = "PC2"
+  ) +
+  my_theme
+
+```
