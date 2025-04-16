@@ -39,9 +39,9 @@ county <- data.frame(
 
 
 write.csv(state,
-          "state_poverty.csv",
+          "../data/clean_data/state_poverty.csv",
           row.names = FALSE)
 
 write.csv(county,
-          "county_poverty.csv",
+          "../data/clean_data/county_poverty.csv",
           row.names = FALSE)
