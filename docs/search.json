@@ -5,5 +5,12 @@
     "title": "DSAN 5200",
     "section": "",
     "text": "hello world!"
+  },
+  {
+    "objectID": "bar_charts.html",
+    "href": "bar_charts.html",
+    "title": "DSAN 5200",
+    "section": "",
+    "text": "import pandas as pd\nimport numpy as np \nimport plotly.graph_objects as go\nimport plotly.express as px\nimport matplotlib.pyplot as plt\n\ndf = pd.read_csv(\"data/state_data/UNITED STATES.csv\")\ndf = df.iloc[8:18,:]\nfig = go.Figure()\ncolumns = columns = [\"State: UNITED STATES\", \n           \"All Substances\", \n           \"Alcohol Only\", \n           \"Alcohol with secondary drug\", \n           \"Heroin\", \n           \"Other opiates\", \n           \"Cocaine (smoked)\", \n           \"Cocaine (other route)\", \n           \"Marijuana\", \n           \"Amphetamines\", \n           \"Other stimulants\", \n           \"Tranquilizers\", \n           \"Sedatives\", \n           \"Hallucinogens\", \n           \"PCP\", \n           \"Inhalants\", \n           \"Other/Unknown\"]\n\ndf_melted = df.melt(id_vars=[\"State: UNITED STATES\"], \n                    value_vars=columns[2:], \n                    var_name=\"Substance\", \n                    value_name=\"Value\")\n\n# Plot with facet per substance\nfig = px.bar(df_melted, \n             x=\"State: UNITED STATES\", \n             y=\"Value\", \n             facet_col=\"Substance\", \n             facet_col_wrap=4, \n             title=\"Substance Use by Age Group Across the US\",\n             labels={\"Value\": \"Usage (%)\", \"State: UNITED STATES\": \"Age Groups\"},\n             height=1200)\n\nfig.update_layout(showlegend=False)\nfig.for_each_annotation(lambda a: a.update(text=a.text.split(\"=\")[-1]))  # Clean facet labels\n\nfig.show()\n\n/opt/anaconda3/lib/python3.11/site-packages/plotly/express/_core.py:1979: FutureWarning:\n\nWhen grouping with a length-1 list-like, you will need to pass a length-1 tuple to get_group in a future version of pandas. Pass `(name,)` instead of `name` to silence this warning."
   }
 ]
