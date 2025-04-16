@@ -1,4 +1,6 @@
-```{python}
+# type: ignore
+# flake8: noqa
+#
 import pandas as pd
 import os
 import plotly.express as px
@@ -83,9 +85,9 @@ for file in files:
 
     subfig.show()
 
-```
-
-```{python}
+#
+#
+#
 import pandas as pd
 import os
 
@@ -126,9 +128,9 @@ df = df.rename(columns={"State": "state"})
 df.columns
 df.to_csv("data/clean_data/state_use.csv")
 
-```
-
-```{python}
+#
+#
+#
 
 poverty_data = pd.read_csv("data/clean_data/state_poverty.csv")
 combined_data = pd.merge(df, poverty_data, left_on="state", right_on="name", how="right")
@@ -148,10 +150,12 @@ fig = px.scatter(
 )
 
 # fig.show()
-```
-
-```{python}
+#
+#
+#
 import plotly.express as px
 
 
-```
+#
+#
+#
