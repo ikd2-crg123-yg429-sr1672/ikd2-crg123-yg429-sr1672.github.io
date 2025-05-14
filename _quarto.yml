@@ -4,7 +4,7 @@ project:
     - data
     - img
     - outputs/**
-  output-dir: docs
+  output-dir: website
 
 website:
   title: "Overdosed"
