@@ -1,0 +1,434 @@
+---
+title: CDC Addiction dataset EDA
+subtitle: DSAN 5200-03 Final Project
+author: Jen Guo
+date: last-modified
+date-format: long
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    mainfont: Atkinson Hyperlegible
+    code-annotations: hover
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto 
+---
+
+# Set up in R
+
+```{r}
+#load libraries for r
+library(ggplot2) 
+library(readr) 
+library(dplyr)
+library(reticulate)
+library(tidyverse)
+library(tidyr)
+library(stringr)
+library(tibble)
+library(reshape2)
+```
+
+# Load data and EDA
+
+```{r}
+#read loan csv file
+addiction_data <- read.csv("../data/clean_data/cleaned_addiction.csv")
+addiction_tibble <- tibble(addiction_data) #use tibble to make addiction_data a dataframe
+
+```
+
+```{r}
+#check for data types of each column in the dataframe
+str(addiction_tibble)
+
+```
+
+```{r}
+#check for missing values 
+print(sum(is.na(addiction_tibble)))
+
+```
+
+There are 78231 missing values in this cleaned addiction dataset
+
+```{r}
+#create heatmap of missing values 
+#subset addiction dataset to only include numerical columns
+addiction_num_df <- addiction_tibble %>%
+    select(Count_drug_overdose_deaths, Percentage_of_records_pending)
+
+#subset addiction dataset so memory space won't run out
+addiction_subset_df <- addiction_num_df[1:1000,] #select rows 1 to 1000
+
+#convert numerica columns addiction dataframe into matrix to prepare for heatmap 
+addiction_matrix <- as.matrix(addiction_subset_df)
+
+```
+
+```{r}
+#create heatmap of the addiction matrix
+heatmap(addiction_matrix)
+
+#initially got the following error when I used the full dataset with numeric fields: Error: vector memory limit of 16.0 Gb reached, see mem.maxVSize()
+```
+
+The heatmap plots a subset of the numeric fields of the addiction dataset, which are Count_drug_overdose_deaths and Percentage_of_records_pending. The heatmap plot shows the subset of the addiction dataframe contains majority higher values in the Count_drug_overdose_deaths and Percentage_of_records_pending columns.
+
+```{r}
+#view summary table of stats for each column in the addiction dataset
+summary(addiction_tibble)
+```
+
+```{r}
+#create boxplots of the Count_drug_overdose_deaths
+boxplot(addiction_tibble$Count_drug_overdose_deaths)
+
+```
+
+Boxplot above shows the distribution of the Count_drug_overdose_deaths column. The boxplot shows majority of the data values are outliers.
+
+```{r}
+#create boxplot for the Percentage_of_records_pending column
+boxplot(addiction_tibble$Percentage_of_records_pending)
+```
+
+Boxplot above shows the distribution of the Percentage_of_records_pending. The boxplot shows majority of the data values are outliers.
+
+```{r}
+#create histograms for univariante analysis
+hist(addiction_tibble$Count_drug_overdose_deaths, xlab="Number of Drug Overdose Deaths", col = "blue", border = "black")
+
+```
+
+Histogram above shows the distribution of the "Count_drug_overdose_deaths" column. The histogram has a left skew and shows that the addiction dataset has more frequent values in the lower range in the number of drug overdose deaths for each county in the US.
+
+```{r}
+#create histograms for univariante analysis
+hist(addiction_tibble$Percentage_of_records_pending, xlab="Percentage of Records Pending", col = "blue", border = "black")
+
+```
+
+Histogram above shows the distribution of the "Percentage_of_records_pending" column. The histogram has a left skew and shows that the addiction dataset has more frequent values in the lower range in the number of pending records for deaths due to drug overdose for each county in the US.
+
+# Visualizations
+
+## Bar Plot Visual Drug Overdose Deaths in Counties
+
+```{r}
+#remove NA rows in the Count_drug_overdose_deaths field 
+addiction_dropna <- addiction_tibble
+
+addiction_dropna <- na.omit(addiction_dropna)
+```
+
+```{r}
+#Get top 200 highest number of drug overdose deaths 
+top_overdoses <- addiction_dropna
+
+top_overdoses <- top_overdoses %>%
+    slice_max(order_by = Count_drug_overdose_deaths, n = 200)
+```
+
+```{r}
+#set to custom color palette 
+my_palette <- c("deeppink", "springgreen", "darkviolet", "coral", "dodgerblue")
+```
+
+```{r}
+#create bar plot
+addiction_barplot <- ggplot(top_overdoses, aes(y = Count_drug_overdose_deaths, x = COUNTYNAME)) + 
+    geom_bar(stat="identity") + #create bar plot
+    labs(y = "Number of Drug Overdose Deaths", x = "State Counties", title = "Figure 1: US Counties with \n Top 200 Highest Number of \n Drug Overdose Deaths", caption="Figure 1 shows the different number of drug overdose deaths for each county in the US") +  #set x,y, color variable titles, plot title, and caption
+    scale_color_manual(values = my_palette) + #set color palette to my custom palette
+    guides(color = guide_legend(title = "Number of Drug Overdose Deaths")) +  #update legend title
+    theme_light() + #set to light theme 
+    theme( plot.background = element_rect(fill = "aliceblue"), #update panel background color
+      axis.title = element_text(face = "bold"), #update axis title text type 
+      axis.line = element_line(arrow = arrow()), #update the axis line format to arrows 
+      axis.text = element_text(colour = "mediumblue"), #update axis text color 
+      axis.ticks = element_line(linewidth = 2), #update axis tick marks thickness 
+      plot.subtitle = element_text(colour = "mediumblue"), #update plot subtitle color 
+      panel.background = element_rect(fill = "ghostwhite"), #update plot panel color 
+      panel.grid.minor = element_blank(), #update plot minor grid 
+      panel.grid.major = element_line(color = "darkblue"), #update plot major grid color 
+      legend.title = element_text(face = "bold"), #update legend title text type 
+      legend.key = element_rect(color = "deepskyblue"), #update the legend key colors 
+      legend.frame = element_rect(color = "deepskyblue"), #update the edge of legend patch color 
+      legend.background = element_rect(color = "oldlace")
+      ) +  #update legend patch background color 
+     theme(plot.title = element_text(family="Times New Roman", size=18, face="bold"), #update plot title font, size, and text type 
+           plot.caption = element_text(family="Times New Roman", colour = "azure", size=12), #update caption font, color, and size 
+           axis.title.x = element_text(family="Times New Roman", colour = "mediumblue"), #update x axis text font and color 
+           axis.title.y = element_text(family="Times New Roman", colour = "mediumblue")) #update y axis text font and color
+
+addiction_barplot #display bar plot
+```
+
+Figure 1 above is a bar graph that the US counties with top 200 highest count of drug overdose deaths, which are the Clark, Harris, King, Philadelphia, San Diego, and Wayne counties. The San Diego county contained the highest count of drug overdose deaths.
+
+## Line Graph Visual Drug Overdose Death Dates
+
+```{r}
+#create Death date column
+addiction_deathdate_df <- addiction_dropna
+
+addiction_deathdate_df$Death_date <- sprintf("%d-%02d", addiction_deathdate_df$Year_of_death, addiction_deathdate_df$Month_of_death)
+
+#check new Death_date column data type
+#str(addiction_deathdate_df$Death_date) #character
+
+#str(addiction_deathdate_df$Count_drug_overdose_deaths)
+```
+
+```{r}
+#convert death_date field to date type and add default 01 dates
+addiction_deathdate_df$Death_date <- as.Date(paste0(addiction_deathdate_df$Death_date, "-01"))
+
+#check type 
+#str(addiction_deathdate_df$Death_date)
+```
+
+```{r}
+#create new column that sums the number of overdose deaths per month in the year 
+addiction_deathdate_df2 <- addiction_deathdate_df %>%
+    group_by(Death_date) %>%
+    mutate(Total_overdose_deaths = sum(Count_drug_overdose_deaths, na.rm = TRUE))
+
+```
+
+```{r}
+#create line graph
+addiction_death_lineplot <- ggplot(addiction_deathdate_df2, aes(x = Death_date, y = Total_overdose_deaths)) + 
+    geom_line() + #create line
+    geom_point() + #add data point marks
+    labs(y = "Number of Drug Overdose Deaths", x = "Death Date Due to Drug Overdose", title = "Figure 2: Analysis of Drug Overdose Deaths in the US from 2020 to 2024", caption="Figure 2 shows the date of deaths due to drug overdose") #set x,y, color variable titles, plot title, and caption
+addiction_death_lineplot #show line plot
+```
+
+```{r}
+#load plotly package
+library(plotly)
+
+#apply plotly to make line graph interactive
+p <- ggplotly(addiction_death_lineplot)
+p
+```
+
+Figure 2 above is a line graph that shows date of deaths due to drug overdose that occurred in the US between 2020/01 and 2024/06. The bar graph shows a steady increase in drug overdose deaths in the US between 2020/01 and 2023/09. Then from 2023/10 to 2024/06, there was a steady decrease in drug overdose deaths in the US.
+
+## Map Visual
+
+```{r}
+#install libraries to create map visual 
+library(sf)
+library(geojsonsf) # reading GeoJSON files into the right format
+library(plotly)
+library(rjson)
+
+#read the us map geojson file
+#usa <- geojson_sf("data/USA.geo.json")
+
+```
+
+```{r}
+#load full dataset
+full_data <- read_csv("../data/clean_data/joined_data.csv")
+```
+
+```{r}
+#create new column of overdose deaths per capita
+full_data2 <- full_data %>%
+    mutate(Deaths_per_capita = (mean_addiction_deaths/census_2020_pop))
+
+```
+
+```{r}
+#log transform Deaths_per_capita
+full_data2 <- full_data2 %>%
+    mutate(Log_deaths_per_capita = ifelse(Deaths_per_capita > 0, log(Deaths_per_capita), NA))
+
+#str(full_data2$Log_deaths_per_capita)
+```
+
+```{r}
+#create column for text tooltip 
+full_data2 <- full_data2 %>%
+    mutate(log_county_hover_text = paste0( 
+    "County: ", county_name, "<br>",
+    "County FIP: ", fips, "<br>",
+    "Log Average Deaths per Capita: ", Log_deaths_per_capita))
+```
+
+```{r}
+#create choropleth map with log transformed overdose deaths per capita
+
+#source code site: https://plotly.com/r/choropleth-maps/
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+
+g <- list( 
+    scope = 'usa',
+    projection = list(type = 'albers usa'),
+    showlakes = TRUE,
+    lakecolor = toRGB('white')
+)
+
+fig <- plot_ly(
+        type="choropleth",
+        geojson=counties,
+        locations=full_data2$fips,
+        z=full_data2$Log_deaths_per_capita,
+        text=full_data2$log_county_hover_text,
+        hoverinfo = "text",
+        colorscale="Viridis",
+        colorbar = list(title = "Drug Overdose Deaths"),
+        marker = list(line = list(width = 0)))
+
+fig <- fig %>% layout(
+    title = "Log Transformed Drug Overdose Deaths \n Per Capita in the US from 2020 to 2024",
+    geo = g)
+  
+fig
+
+```
+
+# State level overdose deaths map
+
+```{r}
+#load population data 
+pop_data <- read_csv("../data/clean_data/population.csv")
+
+#subset population data to merge with addiction_deathdate_df2 dataframe 
+pop_subset <- pop_data %>%
+    select(c("fips_code", "state", "area_name", "census_2020_pop"))
+
+```
+
+```{r}
+#remove row with fips_code = 0 
+pop_subset <- pop_subset[pop_subset$state != "US", ]
+
+#rename fips_code column name 
+pop_subset <- pop_subset %>%
+    rename("FIPS" = "fips_code")
+
+#str(pop_subset$FIPS)
+```
+
+```{r}
+#merge the full_data2 and addiction_deathdate_df2 dataframes 
+addiction_pop_join <-  addiction_deathdate_df2 %>%
+    left_join(pop_subset, by = "FIPS")
+
+```
+
+```{r}
+#str(addiction_pop_join)
+```
+
+```{r}
+#create column of overdose deaths total per state
+addiction_pop_join2 <- addiction_pop_join %>%
+    group_by(STATE_NAME) %>%
+    mutate(State_deaths_total = sum(Count_drug_overdose_deaths, na.rm = TRUE))
+
+```
+
+```{r}
+#create column of overdose deaths per capita state level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(State_deaths_per_capita = (State_deaths_total/census_2020_pop))
+
+```
+
+```{r}
+#create column of log transformed overdose deaths per capita at state level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(Log_state_deaths_per_capita = ifelse(State_deaths_total > 0, log(State_deaths_total), NA))
+
+```
+
+```{r}
+#create column for text tooltip 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(log_state_hover_text = paste0( 
+    "State: ", STATE_NAME, "<br>",
+    "State FIP: ", STATEFIPS, "<br>",
+    "Log Average Deaths per Capita: ", Log_state_deaths_per_capita))
+```
+
+```{r}
+#load the us stata shape file 
+library(sf)
+library(geojsonsf) # reading GeoJSON files into the right format
+
+usa_sf <- read_sf("../data/tl_2024_us_state/tl_2024_us_state.shp")
+```
+
+```{r}
+#rename state_name column to name in addiction_pop_join2 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    rename("NAME" = "STATE_NAME")
+
+```
+
+```{r}
+#join addiction_pop_join2 woth usa_sf dataset 
+add_pop_sf_join <- usa_sf %>%
+    left_join(addiction_pop_join2, by="NAME")
+```
+
+```{r}
+#library(rgeos)
+library(leaflet)
+library(htmltools)
+```
+
+```{r}
+#reformat lat and lng in shape file 
+usa_sf2 <- usa_sf %>%
+    st_transform(usa_sf, crs = 4326)
+```
+
+```{r}
+#create leaflet state level map of drug overdose deaths per capita
+
+map_add_state <- leaflet(usa_sf2) %>%
+    addPolygons(stroke = TRUE, color = 'White', weight = 2,)
+```
+
+```{r}
+#create choropleth map with log transformed overdose deaths per capita state level
+#source code site: https://plotly.com/r/choropleth-maps/
+
+#g2 <- list( 
+#    scope = 'usa',
+#    projection = list(type = 'albers usa'),
+#    showlakes = TRUE,
+#    lakecolor = toRGB('white')
+#)
+
+#fig2 <- plot_ly(
+#        type="choropleth",
+        #geojson=states,
+#        locations=addiction_pop_join2$ST_ABBREV,
+#        z=addiction_pop_join2$Log_state_deaths_per_capita,
+#        text=addiction_pop_join2$log_state_hover_text,
+#        hoverinfo = "text",
+#        locationmode = "USA_states",
+#        colorscale="Viridis",
+#        colorbar = list(title = "Log Drug Overdose Deaths"),
+#        marker = list(line = list(width = 0)))
+
+#fig2 <- fig2 %>% layout(
+#    title = "Log Transformed Drug Overdose Deaths \n Per Capita in the US from 2020 to 2024 \n State Level",
+#    geo = g2)
+  
+#fig2
+```

@@ -2,27 +2,36 @@ project:
   type: website
   resources:
     - data
-    - images
+    - img
+    - outputs/**
   output-dir: docs
 
 website:
-  title: "DSAN 5200"
-  favicon: "images/gu-logo.png"
+  title: "Overdosed"
+  favicon: "img/gu-logo.png"
   navbar:
     search: true
     left:
-      - href: index.qmd
-        text: Homepage
-    
+      - href: about.qmd
+        text: About
+      - href: index.html
+        text: Dashboard
+      - href: findings.html
+        text: Findings
+      - href: references.html
+        text: References  
     right:
       - icon: github
-        href: "https://github.com/ikd2-crg123-yg429-sr1672/ikd2-crg123-yg429-sr1672.io.git"
+        href: "https://github.com/gu-dsan5200/dsan5200-spring2025-project-group-04.git"
 
   
 format:
   html:
-    toc: true
-    toc-location: left
-    toc-depth: 4
+      theme: 
+        - morph
+        - styles.scss
+      toc: true
+      toc-location: right
+      toc-depth: 4
 
-editor: visual
+#editor: visual

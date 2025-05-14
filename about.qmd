@@ -1,0 +1,17 @@
+---
+format:
+    html:
+        embed-resources: true
+title: "Overdosed: <br> Mapping the U.S. Overdose Crisis Through County-Level Data and Demographic Indicators"
+date: 05-02-2025
+author: "Isak Dai, Courtney Green, Jen Guo, Sophia Rutman"
+---
+
+## About the Project
+
+This project was created for **DSAN 5200: Advanced Data Visualization** at Georgetown University. It applies exploratory data analysis and interactive visual storytelling techniques to investigate patterns in drug overdose deaths across the United States.
+
+Leveraging public datasets from sources such as the CDC, Census Bureau, and USDA Economic Research Service, the project explores how demographic and socioeconomic factors relate to overdose mortality at both the state and county levels. Visualizations are designed to help viewers understand geographic clustering, disparities in access to care, and how overdose trends intersect with income, education, race, and age.
+
+All visualizations were built using `Quarto`, `vegabrite`, `plotly`, `Altair`, and `folium`, and are embedded in an interactive dashboard that allows users to filter and explore trends across dimensions. This work is intended to demonstrate how data visualization can support public policy and public health research by making complex, multi-layered issues more understandable and actionable.
+

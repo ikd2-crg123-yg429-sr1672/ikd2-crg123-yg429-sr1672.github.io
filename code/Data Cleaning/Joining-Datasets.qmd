@@ -1,0 +1,119 @@
+---
+title: "Joining Datasets"
+format: html
+---
+
+```{r, echo= FALSE, warning=FALSE}
+library(tidyverse) |> suppressPackageStartupMessages()
+library(janitor) |> suppressPackageStartupMessages()
+```
+
+## Load Datasets
+```{r}
+# load in addiction data
+addiction <- read.csv("../../data/clean_data/cleaned_addiction.csv") |> select(-X)
+
+# summarize by taking mean of drug overdose deaths
+addiction_summary <- addiction |>
+    group_by(FIPS, COUNTYNAME, STATE_NAME) |>
+    summarize(
+        mean_deaths = mean(Count_drug_overdose_deaths, na.rm = TRUE)
+    )
+
+# replace nans with 0
+addiction_summary$mean_deaths[is.na(addiction_summary$mean_deaths)] <- 0
+
+# rename columns
+colnames(addiction_summary) <- c(
+    "fips",
+    "county_name",
+    "state_name",
+    "mean_addiction_deaths"
+)
+
+# load in poverty data
+poverty <- read.csv("../../data/clean_data/county_poverty.csv") |> select(-name)
+
+# rename columns
+colnames(poverty) <- c(
+    "fips",
+    "total_pov",
+    "child_pov",
+    "mhi"
+)
+
+# load in education data
+education <- read.csv("../../data/clean_data/education.csv") |> clean_names()
+
+# select relevant columns
+education <- education |> select(
+    c(
+        fips_code,
+        x2023_rural_urban_continuum_code,
+        percent_of_adults_who_are_not_high_school_graduates_2019_23,
+        percent_of_adults_who_are_high_school_graduates_or_equivalent_2019_23,
+        percent_of_adults_with_a_bachelor_s_degree_or_higher_2019_23
+    )
+)
+
+# rename columns
+colnames(education) <- c(
+    "fips",
+    "rural_urban",
+    "pct_no_hs",
+    "pct_hs",
+    "pct_bach"
+)
+
+# load in population data
+population <- read.csv("../../data/clean_data/population.csv") |> select(
+    c(
+        fips_code,
+        census_2020_pop,
+        n_pop_chg_2021,
+        domestic_mig_2021
+    )
+)
+
+# rename columns
+colnames(population) <- c(
+    "fips",
+    "census_2020_pop",
+    "n_pop_chg_2021",
+    "domestic_mig_2021"
+)
+
+# load in unemployment data
+unemployment <- read.csv("../../data/clean_data/unemployment.csv") |>
+    select(
+        c(
+            fips_code,
+            unemployment_rate_2021,
+            unemployment_rate_2022
+        )
+    )
+
+# rename columns
+colnames(unemployment) <- c(
+    "fips",
+    "unemployment_rate_2021",
+    "unemployment_rate_2022"
+)
+```
+
+## Join Datasets
+```{r}
+# join datasets
+joined_data <- addiction_summary |>
+    left_join(poverty, by = "fips") |>
+    left_join(education, by = "fips") |>
+    left_join(population, by = "fips") |>
+    left_join(unemployment, by = "fips") |> mutate(
+      addiction_pc = mean_addiction_deaths/census_2020_pop
+    )
+```
+
+## Save Joined Dataset
+```{r}
+write.csv(joined_data, "../../data/clean_data/joined_data.csv", row.names = FALSE)
+```

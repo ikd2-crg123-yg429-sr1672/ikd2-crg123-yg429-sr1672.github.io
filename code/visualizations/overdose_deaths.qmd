@@ -1,0 +1,380 @@
+---
+title: CDC Addiction dataset EDA
+subtitle: DSAN 5200-03 Final Project
+author: Jen Guo
+date: last-modified
+date-format: long
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    mainfont: Atkinson Hyperlegible
+    code-annotations: hover
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto 
+---
+
+# Set up in R
+
+```{r}
+#set up renv  
+renv::init()
+```
+
+```{r}
+#load libraries for r
+library(ggplot2) 
+library(readr) 
+library(dplyr)
+library(reticulate)
+library(tidyverse)
+library(tidyr)
+library(stringr)
+library(tibble)
+library(reshape2)
+#install libraries to create map visual 
+library(sf)
+library(geojsonsf) # reading GeoJSON files into the right format
+library(plotly)
+library(rjson)
+library(vegabrite)
+library(vegawidget)
+library(htmlwidgets)
+```
+
+```{r}
+#save current package versions
+renv::snapshot()
+```
+
+# Load data
+
+```{r, warning=FALSE}
+#read loan csv file
+addiction_data <- read.csv("../../data/clean_data/cleaned_addiction.csv")
+#addiction_tibble <- tibble(addiction_data) #use tibble to make addiction_data a dataframe
+
+#remove NA rows in the Count_drug_overdose_deaths field 
+addiction_dropna <- na.omit(addiction_data)
+
+#load full dataset
+full_data <- read_csv("../../data/clean_data/joined_data.csv")
+
+#load population data 
+pop_data <- read_csv("../../data/clean_data/population.csv")
+
+#load the usa map shape file
+usa_sf <- read_sf("../../data/tl_2024_us_state/tl_2024_us_state.shp")
+
+```
+
+# Visualizations
+
+# Map Visual
+```{r}
+# Load GeoJSON from Plotly
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file = url)
+
+# Manually add an 'id' field to each GeoJSON feature
+for (i in seq_along(counties$features)) {
+  state <- counties$features[[i]]$properties$STATE
+  county <- counties$features[[i]]$properties$COUNTY
+  counties$features[[i]]$id <- paste0(state, county)
+}
+all_geo_fips <- sapply(counties$features, function(x) x$id)
+
+# Create base data frame of all FIPS in the GeoJSON
+all_fips_df <- data.frame(fips = all_geo_fips)
+
+# Prepare your main data with formatted FIPS and log-transformed deaths
+full_data2_raw <- full_data %>%
+  mutate(
+    fips = sprintf("%05d", as.integer(fips)),
+    Deaths_per_capita = mean_addiction_deaths / census_2020_pop,
+    Log_deaths_per_capita = log(pmax(Deaths_per_capita, 1e-6)),
+    log_county_hover_text = paste0(
+      "County: ", county_name, "<br>",
+      "County FIP: ", fips, "<br>",
+      "Average Deaths per Capita: ", round(Deaths_per_capita, 4)
+    )
+  )
+
+# Merge to include all counties, even those with no data
+full_data2 <- all_fips_df %>%
+  left_join(full_data2_raw, by = "fips") %>%
+  mutate(
+    Log_deaths_per_capita = ifelse(is.na(Log_deaths_per_capita), log(1e-6), Log_deaths_per_capita),
+    log_county_hover_text = ifelse(
+      is.na(log_county_hover_text),
+      paste0("County FIP: ", fips, "<br>No data available"),
+      log_county_hover_text
+    )
+  )
+
+# Define map layout
+g <- list( 
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+
+# Create choropleth map with reversed color scale (light = low, dark = high)
+fig <- plot_ly(
+  type = "choropleth",
+  geojson = counties,
+  locations = full_data2$fips,
+  z = full_data2$Log_deaths_per_capita,
+  text = full_data2$log_county_hover_text,
+  hoverinfo = "text",
+  featureidkey = "id",
+  colorscale = list(
+    list(0, "#ffcccc"),
+    list(0.3, "#cf3e2a"),
+    list(0.6, "#a31931"),
+    list(0.85, "#8b0e4d"),
+    list(1, "#610061")
+  ),
+  colorbar = list(
+    title = list(
+      text = "Logged<br>Overdose<br>Deaths",
+      font = list(size = 12)
+    ),
+    thickness = 15,
+    len = 0.75
+  ),
+  marker = list(line = list(width = 0))
+)
+
+fig <- fig %>% layout(
+  title = list(
+    text = "<b>Log Transformed Drug Overdose Deaths<br>Per Capita in the US from 2020 to 2024</b>",
+    x = 0.5,
+    y = 0.95,
+    font = list(size = 18)
+  ),
+  geo = g
+)
+
+fig
+```
+
+```{r}
+#save intarctive map into html file
+htmlwidgets::saveWidget(fig, "../../outputs/us_overdose_map_county.html", selfcontained = TRUE)
+```
+
+# State level overdose deaths map
+
+```{r}
+#subset population data to merge with addiction_deathdate_df2 dataframe 
+pop_subset <- pop_data %>%
+    select(c("fips_code", "state", "area_name", "census_2020_pop"))
+
+#remove row with fips_code = 0 
+pop_subset <- pop_subset[pop_subset$state != "US", ]
+
+#rename fips_code column name 
+pop_subset <- pop_subset %>%
+    rename("FIPS" = "fips_code")
+
+#merge the full_data2 and addiction_deathdate_df2 dataframes 
+addiction_pop_join <-  addiction_dropna %>%
+    left_join(pop_subset, by = "FIPS")
+
+```
+
+```{r}
+#create column of overdose deaths total per state
+addiction_pop_join2 <- addiction_pop_join %>%
+    group_by(STATE_NAME) %>%
+    mutate(State_deaths_total = sum(Count_drug_overdose_deaths, na.rm = TRUE))
+
+#create column of overdose deaths per capita state level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(State_deaths_per_capita = (State_deaths_total/census_2020_pop) * 10000)
+
+#create column of log transformed overdose deaths per capita at state level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(Log_state_deaths_per_capita = ifelse(State_deaths_total > 0, log(State_deaths_total), NA))
+
+#create column for text tooltip 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(log_state_hover_text = paste0( 
+    "State: ", STATE_NAME, "<br>",
+    "State FIP: ", STATEFIPS, "<br>",
+    "Average Deaths per Capita: ", State_deaths_total))
+```
+
+```{r}
+#create column for total overdose deaths by county
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    group_by(COUNTYNAME) %>%
+    mutate(Total_overdosedeaths_county = sum(Count_drug_overdose_deaths, na.rm = TRUE))
+
+
+#create column of overdose deaths per capita count level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(County_deaths_per_capita = (Total_overdosedeaths_county/census_2020_pop) * 10000)
+
+
+#create column of log transformed overdose deaths per capita at county level 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    mutate(Log_county_deaths_per_capita = ifelse(County_deaths_per_capita > 0, log(County_deaths_per_capita), NA))
+
+```
+
+```{r}
+#rename state_name column to name in addiction_pop_join2 
+addiction_pop_join2 <- addiction_pop_join2 %>%
+    rename("NAME" = "STATE_NAME")
+
+```
+
+```{r}
+#join addiction_pop_join2 woth usa_sf dataset 
+add_pop_sf_join <- usa_sf %>%
+    left_join(addiction_pop_join2, by="NAME")
+```
+
+```{r}
+#create choropleth map with log transformed overdose deaths per capita state level
+#source code site: https://plotly.com/r/choropleth-maps/
+
+g2 <- list( 
+    scope = 'usa',
+   projection = list(type = 'albers usa'),
+    showlakes = TRUE,
+    lakecolor = toRGB('white')
+)
+
+fig2 <- plot_ly(
+    type = "choropleth",
+    locations = addiction_pop_join2$ST_ABBREV,
+    z = addiction_pop_join2$Log_state_deaths_per_capita,
+    text = addiction_pop_join2$log_state_hover_text,
+    hoverinfo = "text",
+    locationmode = "USA-states",
+    colorscale = list(
+        list(0, "#610061"),
+        list(0.15, "#8b0e4d"),
+        list(0.4, "#a31931"),
+        list(0.7, "#cf3e2a"),
+        list(1, "#ff6e42")
+    ),
+    colorbar = list(
+        title = list(
+            text = "Log Drug<br>Overdose<br>Deaths",
+            font = list(size = 12)
+        ),
+        thickness = 15,
+        len = 0.75
+    ),
+    marker = list(line = list(width = 0))
+)
+
+fig2 <- fig2 %>% layout(
+    title = list(
+        text = "<b>Log Transformed Drug Overdose Deaths<br>Per Capita in the US from 2020 to 2024<br>State Level</b>",
+        x = 0.5,
+        y = 0.95,  # shift title downward slightly
+        font = list(size = 18)
+    ),
+    geo = list(
+        scope = 'usa',
+        projection = list(type = 'albers usa'),
+        showlakes = TRUE,
+        lakecolor = toRGB('white')
+    )
+)
+
+```
+
+```{r}
+#save intarctive map into html file
+htmlwidgets::saveWidget(fig2, "../../outputs/us_overdose_map_state.html", selfcontained = TRUE)
+```
+
+# Interactive Stacked Bar Plot
+
+```{r}
+library(vegabrite)
+
+bar <- vl_chart(title = "Drug Overdose Deaths per Capita by US State and County") %>%
+  vl_add_data(addiction_pop_join2) %>%
+  
+  # State dropdown: label "United States" for NA
+  vl_add_point_selection("states", fields = list("NAME")) %>%
+  vl_bind_select_input(
+    "states",
+    name = "State",
+    options = c("United States" = NA, sort(unique(addiction_pop_join2$NAME)))
+  ) %>%
+  
+  # Filter chart based on selected state
+  vl_filter("states.NAME == null || datum.NAME == states.NAME") %>%
+  
+  # Bar chart setup
+  vl_mark_bar() %>%
+  vl_encode_x(field = "NAME", title = "US States", type = "ordinal") %>%
+  vl_encode_y(field = "County_deaths_per_capita", type = "quantitative",
+              title = "Number of Drug Overdose Deaths Per Capita (County Level)") %>%
+  vl_encode_color(field = "COUNTYNAME", type = "nominal", title = "County") %>%
+  vl_encode_tooltip_array(c(
+    "NAME",
+    "COUNTYNAME",
+    "County_deaths_per_capita",
+    "Log_county_deaths_per_capita",
+    "State_deaths_total"
+  ))
+```
+
+```{r}
+bar_widget <- vegawidget(bar, embed = list(actions = FALSE))
+
+saveWidget(bar_widget, "../../outputs/v2barplot_overdose.html", selfcontained = TRUE, title = NULL)
+```
+
+# Interactive Line graph
+
+```{r}
+#create Death date column
+addiction_deathdate_df <- addiction_pop_join2
+
+addiction_deathdate_df$Death_date <- sprintf("%d-%02d", addiction_deathdate_df$Year_of_death, addiction_deathdate_df$Month_of_death)
+
+#convert death_date field to date type and add default 01 dates
+addiction_deathdate_df$Death_date <- as.Date(paste0(addiction_deathdate_df$Death_date, "-01"))
+
+#create new column that sums the number of overdose deaths per month in the year 
+addiction_deathdate_df2 <- addiction_deathdate_df %>%
+    group_by(Death_date) %>%
+    mutate(Total_overdose_deaths = sum(Count_drug_overdose_deaths, na.rm = TRUE))
+
+```
+
+```{r}
+library(vegabrite)
+
+#create interactive line chart
+line <- vl_chart(data = addiction_deathdate_df2) %>%
+    vl_mark_line(point = TRUE) %>%
+    vl_encode_x(field = "Death_date", timeUnit = 'yearmonth', title = 'Date of Overdose Death') %>%
+    vl_axis_x(domain = FALSE, format = '%Y') %>%
+    vl_encode_y(field = 'Total_overdose_deaths', type = "quantitative", title = 'Total Number of Drug Overdose Deaths Per Month') %>%
+    vl_encode_tooltip_array(c('Death_date', 'Total_overdose_deaths')) %>%
+    vl_add_interval_selection(name = 'grid', bind = 'scales')
+    
+```
+
+```{r}
+linew <- vegawidget(line, embed = list(actions = FALSE))
+
+saveWidget(linew, "../../outputs/v2_line_plot.html", selfcontained = TRUE, title = NULL)
+```

@@ -1,0 +1,110 @@
+/*-- scss:defaults --*/
+
+
+// Website Colors
+//reference: https://colormagic.app/palette/67fd2b4e732020c74d779459
+$heavy-metal: #1d1d1b;
+$rhino: #2f3c5b;
+$kashmir-blue: #4a648c;
+$gulf-stream: #7ea7b4;
+$harvest-gold: #e0a86c;
+
+
+
+$color-1: #f1f5fa;
+
+// Navigation Bar 
+.navbar {
+    background-color: $color-1 !important;
+    //border-bottom: none !important;
+    //box-shadow: none !important;
+    //text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.5) !important;
+}
+
+// Quarto Dashboard Specific Styles
+.quarto-dashboard #quarto-dashboard-header .navbar .navbar-container {
+    background-color: $kashmir-blue !important;
+    border-bottom: solid 1px !important;
+    //border-bottom-color: transparent !important;
+    color: $color-1 !important; //color of header title
+    padding-left: 2rem !important;
+}
+
+
+.quarto-dashboard #quarto-header #quarto-dashboard-header>nav .navbar-brand-container {
+    text-transform: none !important;
+}
+
+.quarto-dashboard #quarto-header #quarto-dashboard-header>nav {
+    padding-left: 0rem !important;
+    padding-right: 0rem !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
+
+.quarto-dashboard #quarto-header #quarto-dashboard-header>.navbar {
+
+    .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1) !important; // Ensures the active link does not have a background color, to match the navbar
+        //text-decoration: underline !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px); // Safari fallback
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        color: #fff !important;
+        border-radius: 6px;
+        //border-bottom-color: $xanadu !important;
+        //color: $bar !important; // Active link color in navbar
+    }
+
+    .nav-link-text {
+        color: $color-1; // Active link color in navbar
+    }
+}
+
+.quarto-dashboard #quarto-content .quarto-dashboard-content {
+    padding-top: 10px !important;
+    /* or 0px if you want it flush */
+}
+
+.card {
+    margin-top: 10px !important;
+    height: auto !important;
+    overflow: visible !important;
+    /* or less */
+}
+
+.card-header {
+    color: $color-1 !important;
+    background-color: #8da6cd !important;
+    font-weight: bold !important;
+}
+
+// Valuebox
+
+.value-box-title {
+    //font-family: 'Tahoma' !important; // Font for the title in value boxes
+    color: $color-1 !important; // Color of the title in value boxes
+    font-size: 1.5rem !important; // Size of the title in value boxes
+    text-transform: none !important; // Make it uppercase
+    text-align: center !important;
+}
+
+.value-box-value {
+    text-align: center !important; // Center align the value in the value bo
+    font-size: 1.0rem !important; // Size of the value in value boxes
+}
+
+.valuebox {
+    height: 300px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+// valuebox
+//$valuebox-bg-danger: #783a3a;
+//$valuebox-bg-success: #6b7b70; // Azure Radiance (for info boxes)
+//$valuebox-bg-info: #838abd;

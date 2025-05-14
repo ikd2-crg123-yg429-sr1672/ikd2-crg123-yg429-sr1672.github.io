@@ -1,0 +1,696 @@
+---
+title: USDA EDA
+subtitle: DSAN 5200-03 Final Project
+author: Courtney Green
+date: last-modified
+format:
+  html:
+    toc: true
+    code-copy: true
+    code-overflow: wrap
+    code-annotations: hover
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto 
+---
+
+## Import
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns 
+```
+
+## Load Data
+```{python}
+df = pd.read_csv("../../data/clean_data/USDA.csv")
+```
+
+## Initial Inspection
+```{python}
+df.shape          # rows, columns
+df.columns        # column names
+df.dtypes         # data types
+df.head()         # preview data
+df.describe()     # summary stats for numeric columns
+df.info()         # data types + non-null counts
+```
+
+## Missing-ness
+
+```{python}
+print(df.isnull().mean().sort_values(ascending=False).head(20))  # % missing
+```
+
+# Education EDA
+
+## General 
+```{python}
+edu_cols = [
+    'state',
+    'percent_of_adults_who_are_not_high_school_graduates_2019-23',
+    'percent_of_adults_who_are_high_school_graduates_or_equivalent_2019-23',
+    'percent_of_adults_completing_some_college_or_associate_degree_2019-23',
+    'percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'
+]
+
+state_edu = df[edu_cols].groupby('state').mean().reset_index()
+state_edu = state_edu.sort_values(by='percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23', ascending=False)
+```
+
+```{python}
+sns.barplot(
+    x="state",
+    y="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    data=state_edu,
+)
+plt.title("Average % of Adults with a Bachelor's Degree or Higher (2019–2023)")
+plt.ylabel("% with Bachelor's or Higher")
+plt.xlabel("State")
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.show()
+```
+
+### Choropleth
+```{python}
+import geopandas as gpd
+import geodatasets
+
+gdf = gpd.read_file("../../data/tl_2024_us_state/tl_2024_us_state.shp")
+
+# Drop territories (like Puerto Rico, Guam, etc.)
+gdf = gdf[~gdf["STUSPS"].isin(["PR", "GU", "VI", "MP", "AS"])]
+
+# Preview column names
+#print(gdf.columns)
+```
+
+
+```{python}
+import us  
+
+df["state_full"] = df["state"].map(
+    lambda abbr: us.states.lookup(abbr).name if us.states.lookup(abbr) else None
+)
+
+state_edu = (
+    df.groupby("state_full")[
+        "percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23"
+    ]
+    .mean()
+    .reset_index()
+    .rename(columns={"state_full": "NAME"})  # Match with shapefile's 'NAME'
+)
+
+choropleth_df = gdf.merge(state_edu, on="NAME", how="left")
+
+
+# Drop non-continental states
+lower48 = choropleth_df[
+    ~choropleth_df["STUSPS"].isin(["AK", "HI", "PR", "VI", "GU", "MP", "AS"])
+]
+
+# Plot
+lower48.plot(
+    column="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    cmap="YlGnBu",
+    linewidth=0.8,
+    edgecolor="gray",
+    legend=True,
+    legend_kwds={"label": "% with Bachelor's Degree or Higher"},
+)
+
+plt.title("Average % of Adults with Bachelor's Degree or Higher by State")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+df.columns
+```
+
+### Rural x Urban
+```{python}
+# Define Urban/Suburban/Rural based on USDA 2023 Rural-Urban Continuum Codes
+# Metro (codes 1–3): Urban
+# Nonmetro, adjacent (codes 4, 6, 8): Suburban
+# Nonmetro, not adjacent (codes 5, 7, 9): Rural
+
+def classify_rural_urban(code):
+    if code in [1, 2, 3]:
+        return 'Urban'      # Metro areas (large, mid-size, small)
+    elif code in [4, 6, 8]:
+        return 'Suburban'   # Nonmetro, but adjacent to metro (some commuting ties)
+    elif code in [5, 7, 9]:
+        return 'Rural'      # Nonmetro, not adjacent (isolated counties)
+    else:
+        return 'Unknown'    # For any unexpected values
+
+# Apply classification to dataset
+df['rural_urban_status'] = df['rural_urban_continuum_code_2023'].apply(classify_rural_urban)
+
+# Boxplot: Bachelor's degree % by Urban/Suburban/Rural
+sns.boxplot(
+    x='rural_urban_status',
+    y="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    data=df
+)
+plt.title("Bachelor’s Degree % by Urban, Suburban, Rural Classification")
+plt.xlabel("Rural-Urban Category")
+plt.ylabel("% with Bachelor's Degree")
+plt.tight_layout()
+plt.show()
+
+```
+
+
+### Education vs Median Household Income 
+
+```{python}
+sns.scatterplot(
+    data=df,
+    x="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    y='median_household_income_2022'
+)
+plt.title("Education vs Median Household Income")
+plt.xlabel("% with Bachelor's Degree")
+plt.ylabel("Median Household Income (2022)")
+plt.show()
+
+```
+
+### Change in Education over Time
+```{python}
+edu_trends = df[[
+    "percent_of_adults_completing_four_years_of_college_or_higher_1970",
+    "percent_of_adults_completing_four_years_of_college_or_higher_1980",
+    "percent_of_adults_with_a_bachelor's_degree_or_higher_1990",
+    "percent_of_adults_with_a_bachelor's_degree_or_higher_2000",
+    "percent_of_adults_with_a_bachelor's_degree_or_higher_2008-12",
+    "percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23"
+]].mean().reset_index()
+
+edu_trends.columns = ['year', 'avg_percent_bachelor']
+edu_trends['year'] = edu_trends['year'].str.extract(r'(\d{4})').astype(int)
+
+sns.lineplot(data=edu_trends, x='year', y='avg_percent_bachelor', marker='o')
+plt.title("National Trend: % of Adults with Bachelor's Degree Over Time")
+plt.xlabel("Year")
+plt.ylabel("Average % with Bachelor's")
+plt.grid(True)
+plt.show()
+
+```
+
+## Education x Poverty
+
+```{python}
+# Scatter plot: % Bachelor's vs % in poverty (2023)
+sns.scatterplot(
+    data=df,
+    x="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    y="pctpovall_2023",
+)
+plt.title("% with Bachelor's vs Overall Poverty Rate (2023)")
+plt.xlabel("% with Bachelor's Degree")
+plt.ylabel("Poverty Rate (%)")
+plt.show()
+```
+
+```{python}
+# Bin by % with bachelor's degree
+df['education_bin'] = pd.cut(
+    df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'],
+    bins=[0, 10, 20, 30, 40, 50, 60, 70, 100],
+    labels=[
+        '0–10%', '10–20%', '20–30%', '30–40%',
+        '40–50%', '50–60%', '60–70%', '70%+'
+    ]
+)
+
+# Group by bin and get average poverty rate
+poverty_by_edu = (
+    df
+    .groupby('education_bin')['pctpovall_2023']
+    .mean()
+    .reset_index()
+)
+
+# Plot
+sns.barplot(
+    x='education_bin',
+    y='pctpovall_2023',
+    data=poverty_by_edu
+)
+plt.title("Average Poverty Rate by Education Level (2023)")
+plt.xlabel("Bachelor's Degree Rate")
+plt.ylabel("Poverty Rate (%)")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+corr_cols = [
+    "percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+    'median_household_income_2022',
+    'pctpovall_2023'
+]
+
+sns.heatmap(df[corr_cols].corr(), annot=True, cmap='coolwarm')
+plt.title("Correlation: Education, Income, and Poverty")
+plt.show()
+
+```
+
+## Education x Addiction
+
+```{python}
+addiction_df = pd.read_csv("../../data/clean_data/cleaned_addiction.csv")
+
+# Convert FIPS to numeric
+addiction_df['FIPS'] = pd.to_numeric(addiction_df['FIPS'], errors='coerce')
+
+# Aggregate overdose deaths per county
+addiction_summary = (
+    addiction_df
+    .groupby('FIPS', as_index=False)['Count_drug_overdose_deaths']
+    .sum()
+    .rename(columns={'Count_drug_overdose_deaths': 'total_overdose_deaths'})
+)
+
+# Convert education FIPS to numeric and merge
+df['fips_code'] = pd.to_numeric(df['fips_code'], errors='coerce')
+edu_addiction_df = df.merge(addiction_summary, left_on='fips_code', right_on='FIPS', how='inner')
+```
+
+```{python}
+# Select columns of interest
+edu_cols = [
+    'state',
+    'area_name',
+    'less_than_high_school_graduate_2019-23',
+    'high_school_graduate_or_equivalency_2019-23',
+    'some_college_or_associate_degree_2019-23',
+    'bachelor\'s_degree_or_higher_2019-23',
+    'percent_of_adults_who_are_not_high_school_graduates_2019-23',
+    'percent_of_adults_who_are_high_school_graduates_or_equivalent_2019-23',
+    'percent_of_adults_completing_some_college_or_associate_degree_2019-23',
+    'percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23',
+    'total_overdose_deaths'  
+]
+
+# Subset and drop missing values
+subset = edu_addiction_df[edu_cols].dropna()
+```
+
+```{python}
+# Bin counties by % with bachelor's degree
+edu_addiction_df["education_bin"] = pd.cut(
+    edu_addiction_df["percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23"],
+    bins=[0, 10, 20, 30, 40, 50, 60, 70, 100],
+    labels=[
+        "0–10%",
+        "10–20%",
+        "20–30%",
+        "30–40%",
+        "40–50%",
+        "50–60%",
+        "60–70%",
+        "70%+",
+    ],
+)
+
+# Group by education bin and sum total overdose deaths
+grouped = (
+    edu_addiction_df.groupby("education_bin")["total_overdose_deaths"]
+    .sum()
+    .reset_index()
+)
+
+# Barplot
+sns.barplot(x="education_bin", y="total_overdose_deaths", data=grouped)
+plt.title("Total Overdose Deaths by Education Level")
+plt.xlabel("Bachelor’s Degree Rate")
+plt.ylabel("Total Overdose Deaths")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+```
+
+**Observations** 
+
+- Answers: *Which education level are the most deaths happening?* 
+- Counties where 30–40% of adults have a bachelor's degree have the highest total overdose deaths. 
+- The count of deaths drops sharply as education level increases beyond 40%. 
+- Counties with under 10% or over 70% bachelor's degree rates have very few deaths (likely because there are few counties in those extremes).
+
+
+```{python}
+# Calculate overdose death rate per 100k people
+edu_addiction_df['death_rate_per_100k'] = (
+    edu_addiction_df['total_overdose_deaths'] / edu_addiction_df['census_2020_pop']
+) * 100000
+
+# Bin by % with bachelor's degree
+edu_addiction_df['education_bin'] = pd.cut(
+    edu_addiction_df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'],
+    bins=[0, 10, 20, 30, 40, 50, 60, 70, 100],
+    labels=[
+        '0–10%', '10–20%', '20–30%', '30–40%',
+        '40–50%', '50–60%', '60–70%', '70%+'
+    ]
+)
+
+# Group by education bin, get average overdose death rate per bin
+rate_by_edu = (
+    edu_addiction_df
+    .groupby('education_bin')['death_rate_per_100k']
+    .mean()
+    .reset_index()
+)
+
+# Bar plot
+sns.barplot(
+    x='education_bin',
+    y='death_rate_per_100k',
+    data=rate_by_edu
+)
+plt.title("Average Overdose Death Rate per 100k by Education Level")
+plt.xlabel("Bachelor’s Degree Rate")
+plt.ylabel("Avg Overdose Deaths per 100k")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+```
+
+**Observations**
+
+- Answers: *Which education level are people dying at the highest rates?* 
+- Shows average overdose death rates per 100k by education level, which normalizes for population size and allows better comparison across counties.
+- Here, the highest rates are in 30–50% education counties, but the curve is flatter and doesn’t drop off as sharply.
+- Counties with very low or very high education levels show lower average death rates, suggesting they’re either less affected or underrepresented in fatal overdose data. 
+
+
+```{python}
+q75 = edu_addiction_df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'].quantile(0.75)
+q25 = edu_addiction_df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'].quantile(0.25)
+
+high_edu = edu_addiction_df[edu_addiction_df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'] > q75]
+low_edu = edu_addiction_df[edu_addiction_df['percent_of_adults_with_a_bachelor\'s_degree_or_higher_2019-23'] < q25]
+
+print("High education avg death rate:", high_edu['death_rate_per_100k'].mean())
+print("Low education avg death rate:", low_edu['death_rate_per_100k'].mean())
+
+```
+
+**Observations**
+
+- The average overdose death rate in highly educated counties (e.g., 30–50% with bachelor's degrees) is about 1111 deaths per 100k.
+- In lower-education counties (e.g., 0–20% with bachelor’s degrees), the average death rate is around 612 per 100k.
+-  Challenges a surface-level assumption that overdose risk is concentrated in undereducated areas.
+- May point to underlying socioeconomic or demographic factors (e.g., suburban overdose trends, white-collar drug use, regional prescribing patterns) that education alone doesn’t explain.
+
+### Takeaway
+Education level alone isn't a protective factor — counties with more education aren’t necessarily safer.
+
+# Population EDA
+
+```{python}
+import numpy as np
+
+# Average county population by state
+pop_by_state = (
+    df.groupby("state")["census_2020_pop"]
+    .mean()
+    .reset_index()
+)
+
+
+pop_by_state["NAME"] = pop_by_state["state"].map(
+    lambda abbr: us.states.lookup(abbr).name if us.states.lookup(abbr) else None
+)
+
+pop_by_state["log_avg_pop"] = np.log10(pop_by_state["census_2020_pop"])
+
+# Merge into shapefile
+choropleth_df = gdf.merge(pop_by_state, on="NAME", how="left")
+lower48 = choropleth_df[~choropleth_df["STUSPS"].isin(["AK", "HI", "PR", "GU", "VI", "MP", "AS"])]
+
+# Plot log-scaled population
+lower48.plot(
+    column="log_avg_pop",
+    cmap="PuRd",
+    linewidth=0.8,
+    edgecolor="gray",
+    legend=True,
+    legend_kwds={"label": "Log₁₀ of Avg County Population"}
+)
+
+plt.title("Log-Scaled Avg County Population by State (2020 Census)")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+# Total population by state
+state_pop = df.groupby("state")["census_2020_pop"].sum().reset_index()
+
+state_pop["NAME"] = state_pop["state"].map(
+    lambda abbr: us.states.lookup(abbr).name if us.states.lookup(abbr) else None
+)
+
+choropleth_df = gdf.merge(state_pop, on="NAME", how="left")
+
+# Plot
+lower48.plot(
+    column="census_2020_pop",
+    cmap="YlOrRd",
+    linewidth=0.8,
+    edgecolor="gray",
+    legend=True,
+    legend_kwds={"label": "Total State Population"}
+)
+
+plt.title("Total Population by State (2020 Census)")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+sns.scatterplot(
+    data=edu_addiction_df,
+    x='census_2020_pop',
+    y='total_overdose_deaths'
+)
+plt.title("County Population vs Total Overdose Deaths")
+plt.xlabel("County Population (2020 Census)")
+plt.ylabel("Total Overdose Deaths")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+sns.scatterplot(data=edu_addiction_df, x="census_2020_pop", y="total_overdose_deaths")
+plt.xscale("log")
+plt.yscale("log")
+plt.title("County Population vs Total Overdose Deaths (Log Scale)")
+plt.xlabel("County Population (log scale)")
+plt.ylabel("Total Overdose Deaths (log scale)")
+plt.tight_layout()
+plt.show()
+
+```
+
+
+```{python}
+# Bin population
+edu_addiction_df['pop_bin'] = pd.cut(
+    edu_addiction_df['census_2020_pop'],
+    bins=[0, 25000, 50000, 100000, 250000, 1000000, 10000000],
+    labels=['<25K', '25–50K', '50–100K', '100–250K', '250K–1M', '1M+']
+)
+
+# Group + average overdose rate
+pop_grouped = (
+    edu_addiction_df
+    .groupby('pop_bin')['death_rate_per_100k']
+    .mean()
+    .reset_index()
+)
+
+# Plot
+sns.barplot(
+    data=pop_grouped,
+    x='pop_bin',
+    y='death_rate_per_100k'
+)
+plt.title("Avg Overdose Death Rate by County Population Size")
+plt.xlabel("County Population Bin")
+plt.ylabel("Avg Deaths per 100k")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+# Log population bins
+import numpy as np
+
+df["log_pop"] = np.log10(df["census_2020_pop"])
+df["pop_bin"] = pd.cut(
+    df["log_pop"],
+    bins=[0, 3, 4, 5, 5.5, 6, 6.5],
+    labels=["1K–10K", "10K–100K", "100K–300K", "300K–1M", "1M–3M", "3M+"],
+)
+
+# Group and plot
+pop_edu = (
+    df.groupby("pop_bin")[
+        "percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23"
+    ]
+    .mean()
+    .reset_index()
+)
+
+sns.barplot(
+    data=pop_edu,
+    x="pop_bin",
+    y="percent_of_adults_with_a_bachelor's_degree_or_higher_2019-23",
+)
+plt.title("Avg % with Bachelor's by Population Bin")
+plt.xlabel("County Population (log bins)")
+plt.ylabel("% with Bachelor's")
+plt.tight_layout()
+plt.show()
+
+```
+
+**Observations**
+
+- Bigger counties tend to have more educated populations (likely reflects urbanization: large counties are often urban, with more universities, white-collar jobs, and in-migration of educated people).
+- Smaller counties are less likely to have high bachelor’s attainment.
+- Could be tied to rural status, limited higher ed access, or out-migration of educated youth.
+
+
+# Unemployment EDA
+```{python}
+# Group: avg unemployment rate by state
+unemp_by_state = (
+    df.groupby("state")["unemployment_rate_2023"]
+    .mean()
+    .reset_index()
+)
+
+# Add full state name (for merging with shapefile)
+import us
+unemp_by_state["NAME"] = unemp_by_state["state"].map(
+    lambda abbr: us.states.lookup(abbr).name if us.states.lookup(abbr) else None
+)
+
+# Merge with shapefile
+choropleth_df = gdf.merge(unemp_by_state, on="NAME", how="left")
+
+# Drop non-continental states if needed
+lower48 = choropleth_df[~choropleth_df["STUSPS"].isin(["AK", "HI", "PR", "GU", "VI", "MP", "AS"])]
+
+# Plot choropleth
+lower48.plot(
+    column="unemployment_rate_2023",
+    cmap="YlOrRd",
+    linewidth=0.8,
+    edgecolor="gray",
+    legend=True,
+    legend_kwds={"label": "Unemployment Rate (%)"}
+)
+
+plt.title("Average Unemployment Rate by State (2023)")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+
+```
+
+```{python}
+sns.scatterplot(
+    data=edu_addiction_df,
+    x='unemployment_rate_2023',
+    y='total_overdose_deaths'
+)
+plt.title("Unemployment Rate vs Total Overdose Deaths")
+plt.xlabel("Unemployment Rate (2023)")
+plt.ylabel("Total Overdose Deaths")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+# Bin by unemployment rate
+edu_addiction_df["unemp_bin"] = pd.cut(
+    edu_addiction_df["unemployment_rate_2023"],
+    bins=[0, 3, 5, 7, 10, 100],
+    labels=["<3%", "3–5%", "5–7%", "7–10%", "10%+"],
+)
+
+# Calculate rate per 100k (if not already present)
+edu_addiction_df["death_rate_per_100k"] = (
+    edu_addiction_df["total_overdose_deaths"] / edu_addiction_df["census_2020_pop"]
+) * 100000
+
+# Group by bin and average
+unemp_rate_grouped = (
+    edu_addiction_df.groupby("unemp_bin")["death_rate_per_100k"].mean().reset_index()
+)
+
+sns.barplot(x="unemp_bin", y="death_rate_per_100k", data=unemp_rate_grouped)
+plt.title("Avg Overdose Death Rate by Unemployment Level")
+plt.xlabel("Unemployment Rate")
+plt.ylabel("Avg Deaths per 100k")
+plt.tight_layout()
+plt.show()
+
+```
+
+```{python}
+
+overdoses_by_state = (
+    edu_addiction_df.groupby("state")["total_overdose_deaths"].sum().reset_index()
+)
+
+overdoses_by_state["NAME"] = overdoses_by_state["state"].map(
+    lambda abbr: us.states.lookup(abbr).name if us.states.lookup(abbr) else None
+)
+choropleth_df = gdf.merge(overdoses_by_state, on="NAME", how="left")
+
+# Remove Alaska, Hawaii, territories
+lower48 = choropleth_df[
+    ~choropleth_df["STUSPS"].isin(["AK", "HI", "PR", "GU", "VI", "MP", "AS"])
+]
+
+lower48.plot(
+    column="total_overdose_deaths",
+    cmap="viridis",
+    linewidth=0.8,
+    edgecolor="gray",
+    legend=True,
+    legend_kwds={"label": "Total Overdose Deaths"},
+)
+plt.title("Total Overdose Deaths by State 2020-2024")
+plt.axis("off")
+plt.tight_layout()
+plt.show()
+```

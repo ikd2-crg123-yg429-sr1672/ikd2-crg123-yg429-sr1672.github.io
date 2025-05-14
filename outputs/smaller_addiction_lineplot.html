@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.8.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-f37f212fc17e5c1e491630077a105d35"}, "mark": {"type": "line", "color": "#8b0e4d", "point": {"color": "#8b0e4d", "size": 30}, "strokeWidth": 3}, "encoding": {"tooltip": [{"field": "Observation_12_month_ending_periods", "title": "Date", "type": "temporal"}, {"field": "Count_drug_overdose_deaths", "title": "Average Overdose Deaths", "type": "quantitative"}], "x": {"field": "Observation_12_month_ending_periods", "title": "Date", "type": "temporal"}, "y": {"field": "Count_drug_overdose_deaths", "title": "Average Overdose Deaths", "type": "quantitative"}}, "params": [{"name": "param_5", "select": {"type": "interval", "encodings": ["x", "y"]}, "bind": "scales"}], "title": "12-Month Averaged Drug Overdose Deaths", "width": 450, "$schema": "https://vega.github.io/schema/vega-lite/v5.8.0.json", "datasets": {"data-f37f212fc17e5c1e491630077a105d35": [{"Observation_12_month_ending_periods": "2020-01-31T00:00:00", "Count_drug_overdose_deaths": 66020.0}, {"Observation_12_month_ending_periods": "2020-02-29T00:00:00", "Count_drug_overdose_deaths": 67264.0}, {"Observation_12_month_ending_periods": "2020-03-31T00:00:00", "Count_drug_overdose_deaths": 68550.0}, {"Observation_12_month_ending_periods": "2020-04-30T00:00:00", "Count_drug_overdose_deaths": 70898.0}, {"Observation_12_month_ending_periods": "2020-05-31T00:00:00", "Count_drug_overdose_deaths": 74479.0}, {"Observation_12_month_ending_periods": "2020-06-30T00:00:00", "Count_drug_overdose_deaths": 76872.0}, {"Observation_12_month_ending_periods": "2020-07-31T00:00:00", "Count_drug_overdose_deaths": 79150.0}, {"Observation_12_month_ending_periods": "2020-08-31T00:00:00", "Count_drug_overdose_deaths": 81151.0}, {"Observation_12_month_ending_periods": "2020-09-30T00:00:00", "Count_drug_overdose_deaths": 82809.0}, {"Observation_12_month_ending_periods": "2020-10-31T00:00:00", "Count_drug_overdose_deaths": 83958.0}, {"Observation_12_month_ending_periods": "2020-11-30T00:00:00", "Count_drug_overdose_deaths": 85178.0}, {"Observation_12_month_ending_periods": "2020-12-31T00:00:00", "Count_drug_overdose_deaths": 86297.0}, {"Observation_12_month_ending_periods": "2021-01-31T00:00:00", "Count_drug_overdose_deaths": 88578.0}, {"Observation_12_month_ending_periods": "2021-02-28T00:00:00", "Count_drug_overdose_deaths": 89915.0}, {"Observation_12_month_ending_periods": "2021-03-31T00:00:00", "Count_drug_overdose_deaths": 92142.0}, {"Observation_12_month_ending_periods": "2021-04-30T00:00:00", "Count_drug_overdose_deaths": 93863.0}, {"Observation_12_month_ending_periods": "2021-05-31T00:00:00", "Count_drug_overdose_deaths": 93642.0}, {"Observation_12_month_ending_periods": "2021-06-30T00:00:00", "Count_drug_overdose_deaths": 94626.0}, {"Observation_12_month_ending_periods": "2021-07-31T00:00:00", "Count_drug_overdose_deaths": 95437.0}, {"Observation_12_month_ending_periods": "2021-08-31T00:00:00", "Count_drug_overdose_deaths": 96539.0}, {"Observation_12_month_ending_periods": "2021-09-30T00:00:00", "Count_drug_overdose_deaths": 98019.0}, {"Observation_12_month_ending_periods": "2021-10-31T00:00:00", "Count_drug_overdose_deaths": 99438.0}, {"Observation_12_month_ending_periods": "2021-11-30T00:00:00", "Count_drug_overdose_deaths": 100456.0}, {"Observation_12_month_ending_periods": "2021-12-31T00:00:00", "Count_drug_overdose_deaths": 101441.0}, {"Observation_12_month_ending_periods": "2022-01-31T00:00:00", "Count_drug_overdose_deaths": 101702.0}, {"Observation_12_month_ending_periods": "2022-02-28T00:00:00", "Count_drug_overdose_deaths": 102563.0}, {"Observation_12_month_ending_periods": "2022-03-31T00:00:00", "Count_drug_overdose_deaths": 102476.0}, {"Observation_12_month_ending_periods": "2022-04-30T00:00:00", "Count_drug_overdose_deaths": 101570.0}, {"Observation_12_month_ending_periods": "2022-05-31T00:00:00", "Count_drug_overdose_deaths": 101239.0}, {"Observation_12_month_ending_periods": "2022-06-30T00:00:00", "Count_drug_overdose_deaths": 101162.0}, {"Observation_12_month_ending_periods": "2022-07-31T00:00:00", "Count_drug_overdose_deaths": 101173.0}, {"Observation_12_month_ending_periods": "2022-08-31T00:00:00", "Count_drug_overdose_deaths": 100937.0}, {"Observation_12_month_ending_periods": "2022-09-30T00:00:00", "Count_drug_overdose_deaths": 100840.0}, {"Observation_12_month_ending_periods": "2022-10-31T00:00:00", "Count_drug_overdose_deaths": 101211.0}, {"Observation_12_month_ending_periods": "2022-11-30T00:00:00", "Count_drug_overdose_deaths": 101557.0}, {"Observation_12_month_ending_periods": "2022-12-31T00:00:00", "Count_drug_overdose_deaths": 102553.0}, {"Observation_12_month_ending_periods": "2023-01-31T00:00:00", "Count_drug_overdose_deaths": 102893.0}, {"Observation_12_month_ending_periods": "2023-02-28T00:00:00", "Count_drug_overdose_deaths": 102793.0}, {"Observation_12_month_ending_periods": "2023-03-31T00:00:00", "Count_drug_overdose_deaths": 103143.0}, {"Observation_12_month_ending_periods": "2023-04-30T00:00:00", "Count_drug_overdose_deaths": 103804.0}, {"Observation_12_month_ending_periods": "2023-05-31T00:00:00", "Count_drug_overdose_deaths": 104363.0}, {"Observation_12_month_ending_periods": "2023-06-30T00:00:00", "Count_drug_overdose_deaths": 104462.0}, {"Observation_12_month_ending_periods": "2023-07-31T00:00:00", "Count_drug_overdose_deaths": 104304.0}, {"Observation_12_month_ending_periods": "2023-08-31T00:00:00", "Count_drug_overdose_deaths": 104391.0}, {"Observation_12_month_ending_periods": "2023-09-30T00:00:00", "Count_drug_overdose_deaths": 103695.0}, {"Observation_12_month_ending_periods": "2023-10-31T00:00:00", "Count_drug_overdose_deaths": 102729.0}, {"Observation_12_month_ending_periods": "2023-11-30T00:00:00", "Count_drug_overdose_deaths": 101363.0}, {"Observation_12_month_ending_periods": "2023-12-31T00:00:00", "Count_drug_overdose_deaths": 99743.0}, {"Observation_12_month_ending_periods": "2024-01-31T00:00:00", "Count_drug_overdose_deaths": 98143.0}, {"Observation_12_month_ending_periods": "2024-02-29T00:00:00", "Count_drug_overdose_deaths": 96873.0}, {"Observation_12_month_ending_periods": "2024-03-31T00:00:00", "Count_drug_overdose_deaths": 94424.0}, {"Observation_12_month_ending_periods": "2024-04-30T00:00:00", "Count_drug_overdose_deaths": 92067.0}, {"Observation_12_month_ending_periods": "2024-05-31T00:00:00", "Count_drug_overdose_deaths": 89278.0}, {"Observation_12_month_ending_periods": "2024-06-30T00:00:00", "Count_drug_overdose_deaths": 86682.0}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

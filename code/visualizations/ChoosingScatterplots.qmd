@@ -1,0 +1,125 @@
+---
+title: "Scatterplot Dashboard Code"
+format: html
+embed-resources: true
+---
+
+```{r}
+library(tidyverse) |> suppressPackageStartupMessages()
+library(plotly) |> suppressPackageStartupMessages()
+df <- read.csv("../../data/clean_data/joined_data.csv") |> mutate(
+    addiction_per_10000 = addiction_pc * 10000,
+    log_census_2020_pop = log(census_2020_pop),
+    migration_rate = domestic_mig_2021 / census_2020_pop,
+    pop_ch_rate = n_pop_chg_2021 / census_2020_pop
+)
+
+df_zeroes <- df |> filter(addiction_per_10000 == 0)
+
+df_nonzeroes <- df |> filter(addiction_per_10000 > 0)
+```
+
+```{r}
+# select variables for scatterplot
+vars <- c("total_pov", "child_pov", "mhi", "rural_urban", "pct_no_hs", "pct_hs", 
+      "pct_bach", "log_census_2020_pop", "pop_ch_rate","migration_rate",
+      "unemployment_rate_2021")
+
+# create list of clean variable names
+var_labels <- c("Poverty Rate", "Child Poverty", "Median Household Income",
+        "Urban-Rural Continuum (1 = Urban)", "Adults w/o HS Degree",
+        "Adults w/ HS Degree", "Adults w/ BA or Higher", "Log Population",
+        "Population Change Rate (20-21)","Domestic Migration Rate (20-21)", "Unemployment Rate")
+
+# create a list containing the ranges of each variable
+ranges <- lapply(vars, function(v) range(df[[v]], na.rm = TRUE))
+
+# create a list of density estimates for each variable
+dens_zero_list <- lapply(df_zeroes[vars], function(x) density(x, na.rm = TRUE))
+dens_nz_list   <- lapply(df_nonzeroes[vars], function(x) density(x, na.rm = TRUE))
+
+# ini
+fig <- plot_ly()
+
+# add scatterplot for non-zero death counties
+for(i in seq_along(vars)) {
+  fit <- lm(df_nonzeroes$addiction_per_10000 ~ df_nonzeroes[[vars[i]]])
+
+  fig <- fig %>% 
+    add_trace(
+      x        = df_nonzeroes[[vars[i]]],
+      y        = df_nonzeroes$addiction_per_10000,
+      mode     = "markers",
+      text     = paste(df_nonzeroes$county_name, 
+      "County, ", 
+      df_nonzeroes$state_name,
+      "<br>Addiction Deaths per 10,000: ", 
+      prettyNum(round(df_nonzeroes$addiction_per_10000, 1), big.mark = ",")),
+      name     = var_labels[i],
+      visible  = (i == 1),
+      legend_group = var_labels[i]
+      ) 
+}
+
+# create density curves for zero death vs non-zero death counties
+for(i in seq_along(vars)) {
+  dz <- dens_zero_list[[i]]
+  dn <- dens_nz_list[[i]]
+  fig <- fig %>%
+    add_lines(
+      x       = dz$x, y = dz$y,
+      name    = paste0(var_labels[i], " density (0)"),
+      visible = FALSE,
+      xaxis   = "x2", yaxis = "y2",
+      legendgroup = var_labels[i]
+    ) %>%
+    add_lines(
+      x       = dn$x, y = dn$y,
+      name    = paste0(var_labels[i], " density (>0)"),
+      visible = FALSE,
+      xaxis   = "x2", yaxis = "y2",
+      legendgroup = var_labels[i]
+    )
+}
+
+n  <- length(vars)
+btns <- lapply(seq_len(n), function(i) {
+  vis <- rep(FALSE, n + 2*n)
+  # turn on the i-th scatter:
+  vis[i] <- TRUE
+  # turn on the two density traces right after the block of scatters:
+  vis[n + (2*(i-1) + 1)] <- TRUE
+  vis[n + (2*(i-1) + 2)] <- TRUE
+
+  list(
+    method = "update",
+    args = list(
+      list(visible = vis),
+      list(
+        xaxis  = list(domain = c(0,0.7), title = var_labels[i]),
+        yaxis  = list(domain = c(0,0.85), title = "Addictions / 10k"),
+        xaxis2 = list(domain = c(0.75,1), title = var_labels[i], anchor = "y2"),
+        yaxis2 = list(domain = c(0,1), overlaying = "y", side = "right",
+        showgrid = FALSE)
+      )
+    ),
+    label = var_labels[i]
+  )
+})
+
+# 4. finalize layout
+fig %>%
+  layout(
+    updatemenus = list(
+      list(
+        y       = 1,
+        x       = 0.5,
+        buttons = btns
+      )
+    ),
+    # initial axis setup (before any button click)
+    xaxis  = list(domain = c(0,0.7), title = var_labels[1]),
+    yaxis  = list(domain = c(0,0.85), title = "Addictions / 10k"),
+    xaxis2 = list(domain = c(0.75,1), title = var_labels[1], anchor = "y2"),
+    yaxis2 = list(domain = c(0,1), overlaying = "y", side = "right",
+                  showgr

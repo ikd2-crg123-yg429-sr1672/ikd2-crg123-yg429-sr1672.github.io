@@ -1,1 +1,653 @@
-hello world!
+---
+format:
+  dashboard:
+    engine: jupyter
+    embed-resources: false
+    scrolling: true
+execute:
+  enabled: true
+bibliography: references.bib
+---
+
+```{python}
+import folium
+import pandas as pd
+import altair as alt
+import matplotlib.pyplot as plt
+import geopandas as gpd
+import plotly.express as px
+import plotly.io as pio
+from IPython.display import IFrame
+from IPython.display import display, HTML
+
+pio.templates.default = "plotly"
+from folium.features import GeoJsonTooltip
+from branca.colormap import linear
+
+```
+
+# Overview
+
+# Introduction
+## Row {height=12%}
+### Column {width="100%", style="display: flex; justify-content: center;"}
+
+::::: {.card collapse="false" style="width: 100%; padding: 0;"}
+
+::: {.card-header style="text-align: center;"}
+<div style="max-width: 950px; margin: 0 auto;">
+  <span style="font-weight: bold; font-size: 1.3rem;">
+  Overdosed:<br>Mapping the U.S. Overdose Crisis Through County-Level Data and Demographic Indicators
+  </span>
+</div>
+:::
+
+::: {.card-body style="text-align: center;"}
+<div style="max-width: 600px; margin: 0 auto;">
+  <span style="font-size: 1rem;">Isak Dai · Courtney Green · Jen Guo · Sophia Rutman</span>
+</div>
+:::
+
+:::::
+
+## Row {height=23%}
+
+### Column (width=20%)
+
+```{python}
+# | content: valuebox
+# | cache: true
+# | title: "Total Drug Overdose Deaths in the US in 2021"
+dict(icon="heart-pulse", value="106,699", color="primary")
+```
+
+### Column (width=20%)
+
+```{python}
+# | content: valuebox
+# | cache: true
+# | title: "State with Highest Overdose Death Rate in 2023"
+dict(icon="globe", value="West Virginia", color="danger")
+```
+
+### Column (width=20%)
+
+```{python}
+# | content: valuebox
+# | cache: true
+# | title: "Age Group with Highest Overdose Death Rate"
+dict(icon="people", value="35-44", color="warning")
+```
+
+### Column (width=20%)
+
+```{python}
+# | content: valuebox
+# | cache: true
+# | title: "Opioid Related Overdose Deaths"
+dict(icon="capsule-pill", value="70.6%", color="info")
+```
+
+### Column (width=20%)
+
+```{python}
+# | content: valuebox
+# | cache: true
+# | title: "Decreased Rate Change of Overdose Deaths from 2021-2022"
+dict(icon="clock-history", value="12%", color="success")
+
+```
+
+## Row {height=70%}
+
+### Column {width="50%"}
+
+:::::: panel-tabset
+## Introduction
+
+::: {.callout-note appearance="minimal"}
+Drug addiction and overdose deaths remain a severe and persistent crisis in the United States. **Despite ongoing efforts, drug-related deaths continue to rise year after year, marking this issue as a national public health emergency.** Communities across the country are impacted, but overdose deaths are unevenly distributed, with higher rates concentrated in areas facing socioeconomic disadvantage and racial inequality. **A shortage of rehabilitation and mental health resources, combined with the persistent stigma around addiction, continues to block progress.** [@garnett2024drug]
+
+Thousands of Americans die from drug overdoses each year, and the crisis shows no signs of slowing. **Unlike other causes of death, such as accidents or heart disease, overdose deaths are unnatural and have reached abnormal levels in both cities and rural areas.** Drug addiction remains widespread, and existing systems often fail to offer meaningful support to those affected. [@cdc2025overdose]
+
+**Key drivers of substance abuse include unemployment, poor education, racial disparities, age, lack of healthcare access, housing instability, and poverty.** The stigma around addiction magnifies the crisis, discouraging individuals from seeking help when they need it most. **Access to rehabilitation centers and mental health services remains limited, especially in marginalized communities.** Systemic issues like racism, discrimination, and income inequality continue to widen the gap in care and outcomes. [@cdc2024opioid]
+:::
+
+## History of Opiods
+
+::: {.callout-note appearance="minimal"}
+**Opioids are a leading cause of drug overdose deaths across the United States.** Opioids have existed in the medical field for centuries, used in forms like morphine and other painkillers. **Fentanyl, a synthetic opioid, is prescribed to treat severe pain, particularly in patients tolerant to other drugs.** However, fentanyl is also widely used illegally. **When manufactured synthetically and mixed with other substances, even a small dose of fentanyl can cause a fatal overdose.** [@crs2025opioid]
+
+The extreme potency of fentanyl is why overdoses happen so easily and why addiction develops quickly. **Frequent medical use of fentanyl can lead to tolerance, dependence, and addiction.** **Counterfeit opioid pills contaminated with fentanyl further increase the risk of unintentional overdose, as users often do not know what they are consuming.** [@crs2025opioid]
+:::
+
+## The Opioid Crisis
+
+::: {.callout-note appearance="minimal"}
+**The Opioid Crisis has been an ongoing drug epidemic in the United States.** **Since the 1990s, aggressive marketing of opioids for pain management led to a sharp rise in prescriptions.** From then until 2010, both opioid prescriptions and overdose deaths multiplied. **Increased regulation after 2010 aimed to curb opioid abuse, but many individuals turned to heroin as a substitute, triggering a second wave of the crisis.** [@cdc2024opioid]
+
+**Starting in 2016, the supply of synthetic opioids, like illicit fentanyl, surged, causing a dramatic spike in overdose deaths.** These illegally manufactured opioids were often mixed with other substances, making them even more potent and deadly. **Although the U.S. government has implemented regulations and intervention efforts, drug overdose deaths continue to rise.** [@garnett2024drug]
+:::
+::::::
+
+:::: {.card collapse="true"}
+::: {.callout-note icon="false"}
+## Timeline Analysis
+
+Let’s review our first research question, how have deaths due to drug overdose persisted throughout time in the US? Looking at the line plot below, the line graph shows that there was clearly a rapid increase in overdose deaths as COVID continued to ravage in the US. The occurrence of drug overdose deaths remains a stable occurrence in American lives, and these incidents are not likely to slow down without better resources to help people battling drug addiction.
+:::
+::::
+
+### Column {width="50%"}
+
+::: {.callout-note icon="false" title="<i class='bi bi-question-circle'></i> Research Questions"}
+1.  ***How have deaths due to drug overdose persisted throughout time in the US?***
+
+2.  ***What do these counties and states have in common in terms of socioeconomic characteristics? Which socioeconomic factors correlate with high and low addiction rates?***
+
+3.  ***How do age, race, and ethnicity influence addiction and overdose rates?***
+
+4.  ***Which counties and states suffer from the highest rates of addiction?***
+
+5.  ***Are there any counties that are outliers in terms of their addiction/ death rates given other socioeconomic factors?***
+:::
+
+
+::::: {.card collapse="true"}
+::: card-header
+Drug Overdose Death Timeline
+:::
+
+::: card-body
+
+<embed src="outputs/smaller_addiction_lineplot.html" width="100%" height="550px" style="border:none;">
+
+</embed>
+:::
+:::::
+
+## Row {height="40%"}
+
+### Column {width=70%}
+::::: {.card collapse="true"}
+::: card-header
+Log Transformed Overdose Deaths State Level
+:::
+
+::: card-body
+<embed style="border: none;" src="outputs/us_overdose_map_state.html" width="100%" height="600px"></embed>
+:::
+:::::
+
+### Column{width=30%}
+::: {.callout-note appearance="minimal"}
+Let's take a preview of geographic distribution of drug overdose deaths across the US states. The choropleth map below provides the information of drug overdose deaths in the US on a state level. The total number of overdose deaths were calculated per capita then log transformed for normality.
+:::
+
+# Data
+
+::: {.callout-tip title="How to Explore the Data" appearance="minimal"}
+This table presents substance use data across states, broken down by drug type. You can search, sort, or filter specific substances to compare usage patterns.
+
+-   **Explore which substances are most commonly reported across different states.**
+-   **Compare gender differences in substance use rates.**
+-   **Identify trends in substances often used together, such as alcohol and stimulants.**
+-   **Look for states with unusually high or low usage rates for particular drugs.**
+
+Use the search bar to quickly locate specific drugs or demographic groups. Sorting columns can help highlight notable patterns across categories.
+:::
+
+```{python}
+# | title: "State Substance Use"
+# | cache: true
+import pandas as pd
+from itables import show
+from itables import options as opt
+from IPython.display import display, HTML
+
+# Load data
+df = pd.read_csv("data/clean_data/state_use.csv")
+
+# Display settings
+opt.lengthMenu = [5, 10, 25, 50, 100]
+opt.dom = '<"top"lf>rt<"bottom"ip><"clear">'  # l = length, f = filter right, r = processing, t = table, i = info, p = pagination
+opt.scrollX = True  # Enable horizontal scrolling
+opt.scrollCollapse = True
+opt.autoWidth = False
+opt.columnDefs = [{"width": "80px", "targets": "_all"}]
+
+# Inject custom CSS
+display(
+    HTML(
+        """
+<style>
+    div.dataTables_filter {
+        float: right !important;
+        text-align: right !important;
+        margin-right: 10px;
+    }
+    .dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody {
+        overflow-x: auto !important;
+        max-height: none !important;
+    }
+    table.dataTable {
+        font-size: 13px !important;
+        white-space: nowrap !important;
+    }
+</style>
+"""
+    )
+)
+
+# Show table
+show(df)
+
+
+```
+
+# Geographic Analysis
+
+## Row {.flow}
+
+### Column {width="70%"}
+
+::::: {.card collapse="true"}
+::: card-header
+Interactive Visualization: Overdose, Poverty, and Unemployment
+:::
+
+::: card-body
+<embed src="outputs/plotly_county_metrics_map.html" style="border: none; width: 100%; height: 500px;"></embed>
+:::
+:::::
+
+### Column {width="30%"}
+
+::: {.callout-note appearance="minimal"}
+This interactive map above explores the relationships between overdose deaths, poverty rates, unemployment rates, and population size across U.S. counties. Users can toggle between variables to identify regional patterns and disparities.
+
+-   **Overdose deaths** are heavily concentrated in parts of Appalachia, the Northeast, and pockets of the West Coast.
+-   **Poverty rates** are highest across the Deep South and rural areas in the West and Midwest.
+-   **Unemployment rates** show regional clustering but are generally more dispersed compared to poverty and overdose rates.
+-   **Population size** highlights the concentration of urban centers but also reveals smaller counties heavily impacted relative to their size.
+
+The visualization helps illustrate how economic hardship and structural inequality intersect with public health crises like drug addiction. Areas with high poverty and unemployment often also experience elevated overdose death rates, underscoring the need for targeted, community-specific interventions.
+:::
+
+## Row {height=30%}
+
+### Column
+
+::::: {.card collapse="true"}
+::: {.callout-note appearance="minimal"}
+Drug overdose deaths has an uneven distribution across the US since the geographic location of American communities had heavily influences. Thus, let's take a closer look at the choropleth map below that shows the number of drug overdose deaths in the US on a county level. The total number of overdose deaths were calculated per capita then log transformed for normality.
+:::
+:::::
+
+::::: {.card collapse="true"}
+::: {.callout-note appearance="minimal"}
+Based on the trend of overdose deaths that occurred within the past 5 years in the United States, let's take a closer look at which counties and states had the highest rates of drug overdose deaths by interacting with the stacked bar graph below. The stacked bar graph will allow you to compare drug overdose deaths with each count and state.
+
+Hover over the stacked bars to view the tooltips that show the state name, county name, total number of overdose deaths per capita county level, log total number of overdose deaths per capita county level, and the total number of drug overdose deaths per state. You can also use the drop down to filter to view each state’s data individually. As you interact with the graph, you may notice that Texas, California, Florida, Ohio, and New York are the states with the highest total number of overdose deaths per state. In addition, Texas, Idaho, Nebraska, Kansas, and Colorado are the states with the highest number of drug overdose deaths per county capita.
+:::
+:::::
+
+### Column
+
+::::: {.card collapse="true"}
+::: card-header
+Log Transformed Overdose Deaths County Level
+:::
+
+::: card-body
+<embed style="border: none;" src="outputs/us_overdose_map_county.html" width="100%" height="600px"></embed>
+:::
+:::::
+
+## Row {.flow}
+
+```{python}
+# | title: Drug Overdose Deaths Per Capita by US State & County
+# | cache: true
+import pandas as pd
+import altair as alt
+
+# Load datas
+df = pd.read_csv("data/clean_data/joined_data.csv")
+df["state_name"] = df["state_name"].fillna("Unknown")
+
+# Create dropdown
+dropdown = alt.binding_select(options=sorted(df["state_name"].unique()), name="State: ")
+state_param = alt.param(name="StateSelector", bind=dropdown, value=None)
+
+# Build the chart with filtering logic
+chart = (
+    alt.Chart(df)
+    .add_params(state_param)
+    .transform_filter(
+        "StateSelector == null || datum.state_name == StateSelector"
+    )
+    .mark_bar()
+    .encode(
+        x=alt.X("state_name:N", title="US States", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y("addiction_pc:Q", title="Drug Overdose Deaths Per Capita (County Level)"),
+        color=alt.Color("county_name:N", title="County", sort=None),
+        tooltip=[
+            "state_name:N",
+            "county_name:N",
+            "addiction_pc:Q",
+            "mean_addiction_deaths:Q",
+            "total_pov:Q"
+        ]
+    )
+    .properties(
+        width=900,
+        height=500,
+        title="Drug Overdose Deaths per Capita by US State and County"
+    )
+)
+
+chart
+```
+
+# Demographic Analysis
+
+## Row {.flow}
+### Column {width="50%"}
+
+::::: {.card collapse="true"}
+::: card-header
+Racial Demograhics of Substance Use
+:::
+::: card-body
+<embed style="border:none;" src="outputs/race.html" dpi="300" width="100%" height="500px"></embed>
+:::
+:::::
+
+::: {.callout-note title="Key Takeaways" appearance="minimal"}
+This bar chart shows the percentage breakdown of U.S. substance use treatment admissions by race and ethnicity across different substances.
+
+-   **White individuals make up the majority of admissions across most substances,** particularly for alcohol, opiates, and stimulants.
+-   **Black or African American individuals show notably higher admission rates for cocaine-related substances** compared to other groups.
+-   **Hispanic or Latino populations account for a significant portion of admissions for marijuana and heroin treatment.**
+-   Other racial and ethnic groups, including Asian American, Native American, and multiracial individuals, represent a smaller but important proportion across categories.
+
+These patterns suggest how substance use and treatment disparities can vary significantly by race and ethnicity, highlighting the need for culturally specific prevention and intervention strategies.
+:::
+
+### Column {width=30%}
+
+::: {.callout-note appearance="minimal"}
+Economic variables also correlate with each other, as can be seen here in the strong linear relationship between median household income and the percentage of adults with a bachelor's degree. The scatterplot below enables the user to explore the distribution of addiction deaths per 10,000 people in relation to the percentage of adults with a bachelor's degree and median household income.
+
+**Brush over the scatterplot to see how the density plot of addiction deaths changes.**
+:::
+
+
+::::: {.card collapse="true"}
+::: card-header
+Relationship Between Educational Attainment, Income, and Addiction Deaths
+:::
+
+::: card-body
+<embed style="border:none;" src="outputs/scatterplot_density.html" dpi="300" width="100%" height="800px"></embed>
+:::
+:::::
+
+::: {.callout-note appearance="minimal"}
+It appears that income may be a more significant factor in determining addiction rates than education. If you examine the areas of the scatterplot off the main diagonal, the counties with higher rates of college education but lower median household income have higher addiction rates compared to counties with higher median household income but lower rates of college education.
+:::
+
+## Row {height=40%}
+
+### Column {width=70%}
+::::: {.card collapse="true"}
+::: card-header
+Demographic Variables vs. Addication Death Rates
+:::
+
+::: card-body
+<embed style="border:none;" src="outputs/scatterplot.html" dpi="300" width="100%" height="600px"></embed>
+:::
+:::::
+
+### Column {width = 30%}
+::: {.callout-note appearance="minimal"}
+Variables like poverty, child poverty, unemployment, and proportion of adults without a high school degree correlate with higher addiction death rates. Higher levels of college education and higher median incomes correlate with lower addiction death rates. The relationship between population variables and addiction death rates are more complicated. There is no clear linear trend between the urbanicity index and addiction death rates, but a look at the twin density plots shows that counties with no deaths are much more likely to be rural. Population change and net migration both have overplotted scatterplots, and thus a different method of visualizing their correlation may be necessary. 
+:::
+
+# Age and Education Analysis
+
+```{python}
+# | echo: false
+# | output: false
+# | cache: true
+# | title: State by State, Age, Education Analysis
+
+import plotly.graph_objects as go
+import dash
+from dash import dcc, html, Input, Output, dash_table
+import pandas as pd
+import plotly.express as px
+from plotly.subplots import make_subplots
+import os
+
+# Load poverty data
+df = pd.read_csv("data/clean_data/education.csv")
+us_states = [
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New_Hampshire",
+    "New_Jersey",
+    "New_Mexico",
+    "New_York",
+    "North_Carolina",
+    "North_Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Rhode_Island",
+    "South_Carolina",
+    "South_Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "West_Virginia",
+    "Wisconsin",
+    "Wyoming",
+]
+custom_color_scale = [
+    [0.0, "#610061"],
+    [0.25, "#8b0e4d"],
+    [0.5, "#a3193a"],
+    [0.75, "#cf3e2a"],
+    [1.0, "#ff6e42"]
+]
+
+poverty_data = df[
+    df.apply(lambda row: any(state in row.values for state in us_states), axis=1)
+]
+# Create US map with poverty rates
+fig_map = px.choropleth(
+    poverty_data,
+    locations="state",
+    locationmode="USA-states",
+    color="percent_of_adults_who_are_high_school_graduates_or_equivalent_2019-23",
+    hover_name="state",
+    color_continuous_scale=custom_color_scale,
+    scope="usa",
+    title="Click a State to See Substance Use vs High School as Highest Level of Education",
+    labels={
+        "percent_of_adults_who_are_high_school_graduates_or_equivalent_2019-23": "Adults with<br>High School<br>as Highest Level<br>of Education"
+    },
+)
+
+fig_map.write_html("website/img/education_choro.html")
+
+
+# Initialize Dash app
+app = dash.Dash(__name__)
+server = app.server  # for deployment
+
+# Layout
+app.layout = html.Div(
+    [
+        html.H2("US Substance Use & Education Dashboard"),
+        dcc.Graph(id="us-map", figure=fig_map),
+        dcc.Graph(id="state-details"),
+        html.H4("Raw CSV Data:"),
+        dash_table.DataTable(
+            id="raw-data-table",
+            style_table={"overflowX": "auto"},
+            style_cell={"textAlign": "left"},
+            page_size=10,
+        ),
+    ]
+)
+
+
+# Callback to update graph and table
+@app.callback(
+    Output("state-details", "figure"),
+    Output("raw-data-table", "data"),
+    Output("raw-data-table", "columns"),
+    Input("us-map", "clickData"),
+)
+def update_state_plot(clickData, poverty_data=poverty_data):
+    import plotly.graph_objects as go
+    import dash
+    from dash import dcc, html, Input, Output, dash_table
+    import pandas as pd
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    import os
+
+    if not clickData:
+        return (
+            go.Figure().update_layout(title="Click on a state to view data."),
+            [],
+            [],
+        )
+
+    state_code = clickData["points"][0]["location"]
+    state_name = poverty_data[poverty_data["state"] == state_code]["area_name"].values[
+        0
+    ]
+    state_name = state_name.upper().replace("_", " ")
+    file_path = f"data/state_data/{state_name}.csv"
+
+    if not os.path.exists(file_path):
+        return (
+            go.Figure().update_layout(
+                title=f"No drug usage data found for {state_name}"
+            ),
+            [],
+            [],
+        )
+
+    # Load drug usage data
+    df = pd.read_csv(file_path)
+    df = df.iloc[8:18, :].drop(columns=["Unnamed: 0"], errors="ignore")
+    df = df.rename(columns={df.columns[0]: "Age Group"})
+    df["state"] = state_name
+    drug_columns = df.columns[2:-1]
+    df_melted = df.melt(
+        id_vars=["Age Group"],
+        value_vars=drug_columns,
+        var_name="Substance",
+        value_name="Usage (%)",
+    )
+    state_pov = poverty_data[poverty_data["state"] == state_name]
+
+    # Create subplot
+    fig = go.Figure()
+
+    # Add bars for each substance (grouped by Age Group)
+    for substance in df_melted["Substance"].unique():
+        df_sub = df_melted[df_melted["Substance"] == substance]
+        fig.add_trace(
+            go.Bar(x=df_sub["Age Group"], y=df_sub["Usage (%)"], name=substance)
+        )
+
+    # Update layout
+    fig.update_layout(
+        title=f"{state_name}: Drug Use",
+        height=600,
+        width=1000,
+        barmode="group",  # use "stack" if you want them stacked
+        legend_title="Category",
+        legend=dict(
+            orientation="v",
+            x=1.02,
+            y=1,
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="black",
+            borderwidth=1,
+        ),
+        xaxis_title="Age Group",
+        yaxis_title="Percentage (%)",
+        yaxis=dict(range=[0, 100]),
+    )
+    # Format raw CSV as table
+    table_data = df.to_dict("records")
+    table_columns = [{"name": col, "id": col} for col in df.columns]
+
+    return fig, table_data, table_columns
+
+
+app.run(debug=True, port=8055)
+```
+
+::::: {.card collapse="true"}
+::: card-header
+Education by State
+:::
+
+::: card-body
+<iframe src="website/img/education_choro.html" width="100%" height="600px" style="border: none;"></iframe>
+:::
+:::::
+
+::: {.callout-note appearance="minimal"}
+Above, we present a choropleth that relates age to percentage of adults where their highest level of education is a high school diploma. States such as West Virginia and Ohio have extremely high percentages, while California and Ohio have low percentages.
+
+We wanted to further explore the connection between education, drug use, and age. To do so, we created the interactive plot linked below. To see the usage rates by age group for each state, click on the state you want to see. The states are covered by the percentage of adult high school graduates from 2019-2023.
+
+You will notice certain patterns as you click through states. **First of all, younger ages use drugs at higher rates.** The percentage is higher during early to mid twenties. These bar plots are shaped like a bell curve - percentages peak at a specific age range then slowly taper off. The peak depends on the state itself, but also has some correlation with education rates.
+
+**In states with a lower adult graduate rate, the bell curve is skewed further towards the left.** In other words: towards younger populations. With higher graduation rates, the curve is shifted further towards the right. Let us use Colorado and Ohio as case studies. Colorado has an extremely low percentage of adults with this education level, and Ohio a large percentage. We can see that the bell curve for Colorado is shifted all the way towards the left, and Ohio further right. This pattern could be due to a variety of reasons, such as drug use on college campuses or legislation. Further work is required to explore all of these options.
+
+The only two states without data are Oregon and Nevada.
+
+[Click on this link to explore](http://localhost:8055/)
+:::

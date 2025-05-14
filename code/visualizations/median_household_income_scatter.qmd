@@ -1,0 +1,49 @@
+---
+title: "Scatterplot Draft"
+format:
+    html:
+        include-in-header:
+         - text: |
+            <script src="https://d3js.org/d3.v7.min.js"></script>
+embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+df <- read.csv("../../data/cleaned_data/joined_data.csv") |> mutate(
+    addiction_per_10000 = addiction_pc * 10000
+)
+
+ojs_define(data = df)
+```
+
+```{ojs}
+d3 = require('d3@7') 
+import {vl} from "@vega/vega-lite-api-v5"
+import {SummaryTable} from "@observablehq/summary-table"
+
+data_use = transpose(data)
+
+SummaryTable(data_use)
+
+vl.markPoint({size: 50, filled: true})
+    .data(data_use)
+    .encode(
+        vl.x().field("pct_bach").type("quantitative")
+            .axis({title: "Percent of Adults with Bachelor's Degree"}),
+        vl.y().field("mhi").type("quantitative")
+            .axis({title: "Median Household Income"}),
+        vl.color().field("addiction_per_10000").type("quantitative")
+            .scale({scheme: "blues"})
+            .legend({title: "Addiction Death per 10,000"}),
+        vl.tooltip([
+            {field: "county_name", type: "nominal", title: "County"},
+            {field: "state_name", type: "nominal", title: "State"},
+            {field: "pct_bach", type: "quantitative", title: "Bachelor's (%)", format: ".1f"},
+            {field: "mhi", type: "quantitative", title: "Median Income ($)", format: ",.0f"},
+            {field: "addiction_per_10000", type: "quantitative", title: "Addiction Deaths per 10,000", format: ",.0f"}
+        ])
+    )
+    .title(" Median Household Income vs. Percent of Adults with Bachelor's Degree")
+    .render()
+```
